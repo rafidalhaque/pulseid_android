@@ -79,6 +79,7 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          RELEASE_BODY: ${{ env.RELEASE_BODY }}
         run: |
           set -euo pipefail
 
@@ -89,7 +90,7 @@ jobs:
           curl --fail --silent --show-error \
             -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
             -d "chat_id=${TELEGRAM_CHAT_ID}" \
-            --data-urlencode "text@${RELEASE_BODY_FILE}"
+            --data-urlencode text@"$RELEASE_BODY_FILE"
 
           curl --fail --silent --show-error \
             -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" \
