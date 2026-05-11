@@ -113,6 +113,8 @@ fun BleAdvertisingScreen(
         }
     }
 
+    val isAdvertising = status == "Advertising" || status == "Starting..."
+
     Column(
         modifier = modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.Center,
@@ -123,42 +125,34 @@ fun BleAdvertisingScreen(
 
         Button(
             onClick = {
-                val hasPermissions = requiredPermissions.all {
-                    ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
-                }
-                if (hasPermissions) {
-                    val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
-                    val bluetoothAdapter = bluetoothManager.adapter
-                    if (bluetoothAdapter?.isEnabled == false) {
-                        val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-                        bluetoothEnableLauncher.launch(enableBtIntent)
-                    } else {
-                        scope.launch {
-                            currentUuid = bleKeyManager.getDailyUuid()
-                            if (currentUuid != null) {
-                                bleAdvertiser.startAdvertising(currentUuid!!)
-                            } else {
-                                // Handle error fetching key (e.g. 401 triggered token clearing)
-                                if (ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_ADVERTISE) != PackageManager.PERMISSION_GRANTED) {
-                                    // This is just a safety check
+                if (isAdvertising) {
+                    bleAdvertiser.stopAdvertising()
+                } else {
+                    val hasPermissions = requiredPermissions.all {
+                        ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
+                    }
+                    if (hasPermissions) {
+                        val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+                        val bluetoothAdapter = bluetoothManager.adapter
+                        if (bluetoothAdapter?.isEnabled == false) {
+                            val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+                            bluetoothEnableLauncher.launch(enableBtIntent)
+                        } else {
+                            scope.launch {
+                                currentUuid = bleKeyManager.getDailyUuid()
+                                if (currentUuid != null) {
+                                    bleAdvertiser.startAdvertising(currentUuid!!)
                                 }
                             }
                         }
+                    } else {
+                        launcher.launch(requiredPermissions)
                     }
-                } else {
-                    launcher.launch(requiredPermissions)
                 }
             },
-            modifier = Modifier.fillMaxWidth(0.7f).padding(bottom = 8.dp)
-        ) {
-            Text("Start Advertising")
-        }
-
-        OutlinedButton(
-            onClick = { bleAdvertiser.stopAdvertising() },
             modifier = Modifier.fillMaxWidth(0.7f).padding(bottom = 32.dp)
         ) {
-            Text("Stop Advertising")
+            Text(if (isAdvertising) "Stop Advertising" else "Start Advertising")
         }
 
         TextButton(onClick = onLogout) {
