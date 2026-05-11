@@ -28,14 +28,31 @@ jobs:
         run: ./gradlew assembleRelease --stacktrace
 
       - name: Sign APK
-        uses: r0adkll/sign-android-release@v1
         id: sign_app
-        with:
-          releaseDirectory: app/build/outputs/apk/release
-          signingKeyBase64: ${{ secrets.SIGNING_KEY }}
-          alias: ${{ secrets.ALIAS }}
-          keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
-          keyPassword: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          # 1. Create the keystore file from the secret
+          echo "${{ secrets.SIGNING_KEY }}" | base64 -d > app/release.jks
+          
+          # 2. Find the unsigned APK built by Gradle
+          UNSIGNED_APK=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          echo "Found APK: $UNSIGNED_APK"
+          
+          # 3. Find the latest build tools to get apksigner
+          BUILD_TOOLS_VERSION=$(ls $ANDROID_HOME/build-tools/ | sort -V | tail -n 1)
+          APKSIGNER=$ANDROID_HOME/build-tools/$BUILD_TOOLS_VERSION/apksigner
+          echo "Using apksigner from version: $BUILD_TOOLS_VERSION"
+          
+          # 4. Sign the APK
+          $APKSIGNER sign \
+            --ks app/release.jks \
+            --ks-key-alias "${{ secrets.ALIAS }}" \
+            --ks-pass "pass:${{ secrets.KEYSTORE_PASSWORD }}" \
+            --key-pass "pass:${{ secrets.KEY_PASSWORD }}" \
+            --out app/build/outputs/apk/release/pulseid-release-signed.apk \
+            "$UNSIGNED_APK"
+          
+          # 5. Export the path for the next step
+          echo "signedReleaseFile=app/build/outputs/apk/release/pulseid-release-signed.apk" >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
