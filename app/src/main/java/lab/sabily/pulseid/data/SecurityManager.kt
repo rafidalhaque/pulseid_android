@@ -4,6 +4,10 @@ import android.content.Context
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+
 class SecurityManager(context: Context) {
     private val masterKey = MasterKey.Builder(context)
         .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
@@ -17,14 +21,25 @@ class SecurityManager(context: Context) {
         EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
     )
 
+    private val _isAuthenticated = MutableStateFlow(getToken() != null)
+    val isAuthenticated: StateFlow<Boolean> = _isAuthenticated.asStateFlow()
+
     fun saveToken(token: String) {
+        android.util.Log.d("SecurityManager", "Saving token: ${token.take(10)}...")
         prefs.edit().putString(KEY_TOKEN, token).apply()
+        _isAuthenticated.value = true
     }
 
-    fun getToken(): String? = prefs.getString(KEY_TOKEN, null)
+    fun getToken(): String? {
+        val token = prefs.getString(KEY_TOKEN, null)
+        android.util.Log.d("SecurityManager", "Getting token: ${token?.take(10)}...")
+        return token
+    }
 
     fun clearToken() {
+        android.util.Log.d("SecurityManager", "Clearing token")
         prefs.edit().remove(KEY_TOKEN).apply()
+        _isAuthenticated.value = false
     }
 
     fun saveEmployeeUuid(uuid: String) {

@@ -13,14 +13,21 @@ class BleKeyManager(
     private var masterSecret: String? = null
 
     suspend fun getDailyUuid(): String? {
-        val employeeUuid = securityManager.getEmployeeUuid() ?: return null
+        val employeeUuid = securityManager.getEmployeeUuid()
+        if (employeeUuid == null) {
+            android.util.Log.e("BleKeyManager", "Employee UUID is null")
+            return null
+        }
         
         // Fetch secret if not in memory
         if (masterSecret == null) {
             try {
+                android.util.Log.d("BleKeyManager", "Fetching master secret...")
                 val response = api.getEmployeeKey()
                 masterSecret = response.master_secret
+                android.util.Log.d("BleKeyManager", "Master secret fetched successfully")
             } catch (e: Exception) {
+                android.util.Log.e("BleKeyManager", "Failed to fetch master secret", e)
                 return null
             }
         }
@@ -29,7 +36,9 @@ class BleKeyManager(
         val date = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
         val input = employeeUuid + date
         
-        return generateHmacUuid(secret, input)
+        val uuid = generateHmacUuid(secret, input)
+        android.util.Log.d("BleKeyManager", "Generated daily UUID: $uuid")
+        return uuid
     }
 
     private fun generateHmacUuid(key: String, data: String): String {
