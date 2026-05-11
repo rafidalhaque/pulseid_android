@@ -39,14 +39,14 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             PulseIDTheme {
-                var isAuthenticated by remember { mutableStateOf(securityManager.getToken() != null) }
+                val isAuthenticated by securityManager.isAuthenticated.collectAsState()
 
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     if (!isAuthenticated) {
                         LoginScreen(
                             securityManager = securityManager,
                             networkModule = networkModule,
-                            onLoginSuccess = { isAuthenticated = true }
+                            onLoginSuccess = { /* Flow will update automatically */ }
                         )
                     } else {
                         BleAdvertisingScreen(
@@ -54,7 +54,6 @@ class MainActivity : ComponentActivity() {
                             onLogout = { 
                                 securityManager.clearToken()
                                 bleKeyManager.clearSecret()
-                                isAuthenticated = false 
                             },
                             modifier = Modifier.padding(innerPadding)
                         )
