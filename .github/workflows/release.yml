@@ -12,6 +12,12 @@ jobs:
   build:
     name: Build Signed APK
     runs-on: ubuntu-latest
+    env:
+      RELEASE_BODY: |
+        Automated release from push to master.
+
+        Changes in this version:
+        ${{ github.event.head_commit.message }}
 
     steps:
       - name: Checkout code
@@ -57,23 +63,13 @@ jobs:
           # 5. Export the path for the next step
           echo "signedReleaseFile=app/build/outputs/apk/release/pulseid-release-signed.apk" >> $GITHUB_OUTPUT
 
-      - name: Prepare release body
-        id: release_notes
-        run: |
-          echo "body<<EOF" >> "$GITHUB_OUTPUT"
-          echo "Automated release from push to master." >> "$GITHUB_OUTPUT"
-          echo "" >> "$GITHUB_OUTPUT"
-          echo "Changes in this version:" >> "$GITHUB_OUTPUT"
-          echo "${{ github.event.head_commit.message }}" >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: ${{ steps.sign_app.outputs.signedReleaseFile }}
           tag_name: v1.0.${{ github.run_number }}
           name: Release v1.0.${{ github.run_number }}
-          body: ${{ steps.release_notes.outputs.body }}
+          body: ${{ env.RELEASE_BODY }}
           draft: false
           prerelease: false
         env:
@@ -83,14 +79,17 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          RELEASE_BODY: ${{ steps.release_notes.outputs.body }}
         run: |
           set -euo pipefail
+
+          RELEASE_BODY_FILE="$(mktemp)"
+          trap 'rm -f "$RELEASE_BODY_FILE"' EXIT
+          printf '%s' "$RELEASE_BODY" > "$RELEASE_BODY_FILE"
 
           curl --fail --silent --show-error \
             -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
             -d "chat_id=${TELEGRAM_CHAT_ID}" \
-            --data-urlencode "text=${RELEASE_BODY}"
+            --data-urlencode "text@${RELEASE_BODY_FILE}"
 
           curl --fail --silent --show-error \
             -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" \
