@@ -12,6 +12,12 @@ jobs:
   build:
     name: Build Signed APK
     runs-on: ubuntu-latest
+    env:
+      RELEASE_BODY: |
+        Automated release from push to master.
+
+        Changes in this version:
+        ${{ github.event.head_commit.message }}
 
     steps:
       - name: Checkout code
@@ -63,12 +69,31 @@ jobs:
           files: ${{ steps.sign_app.outputs.signedReleaseFile }}
           tag_name: v1.0.${{ github.run_number }}
           name: Release v1.0.${{ github.run_number }}
-          body: |
-            Automated release from push to master.
-            
-            Changes in this version:
-            ${{ github.event.head_commit.message }}
+          body: ${{ env.RELEASE_BODY }}
           draft: false
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload APK to Telegram
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          RELEASE_BODY: ${{ env.RELEASE_BODY }}
+        run: |
+          set -euo pipefail
+
+          RELEASE_BODY_FILE="$(mktemp)"
+          trap 'rm -f "$RELEASE_BODY_FILE"' EXIT
+          printf '%s' "$RELEASE_BODY" > "$RELEASE_BODY_FILE"
+
+          curl --fail --silent --show-error \
+            -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d "chat_id=${TELEGRAM_CHAT_ID}" \
+            --data-urlencode text@"$RELEASE_BODY_FILE"
+
+          curl --fail --silent --show-error \
+            -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" \
+            -F "chat_id=${TELEGRAM_CHAT_ID}" \
+            -F "document=@${{ steps.sign_app.outputs.signedReleaseFile }}" \
+            -F "caption=Release v1.0.${{ github.run_number }} APK"
