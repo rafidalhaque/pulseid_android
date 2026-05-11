@@ -21,16 +21,44 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import lab.sabily.pulseid.data.BleKeyManager
+import lab.sabily.pulseid.data.NetworkModule
+import lab.sabily.pulseid.data.SecurityManager
+import lab.sabily.pulseid.ui.LoginScreen
 import lab.sabily.pulseid.ui.theme.PulseIDTheme
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        
+        val securityManager = SecurityManager(this)
+        val networkModule = NetworkModule(securityManager)
+        val bleKeyManager = BleKeyManager(networkModule.api, securityManager)
+
         setContent {
             PulseIDTheme {
+                var isAuthenticated by remember { mutableStateOf(securityManager.getToken() != null) }
+
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    BleAdvertisingScreen(modifier = Modifier.padding(innerPadding))
+                    if (!isAuthenticated) {
+                        LoginScreen(
+                            securityManager = securityManager,
+                            networkModule = networkModule,
+                            onLoginSuccess = { isAuthenticated = true }
+                        )
+                    } else {
+                        BleAdvertisingScreen(
+                            bleKeyManager = bleKeyManager,
+                            onLogout = { 
+                                securityManager.clearToken()
+                                bleKeyManager.clearSecret()
+                                isAuthenticated = false 
+                            },
+                            modifier = Modifier.padding(innerPadding)
+                        )
+                    }
                 }
             }
         }
@@ -38,16 +66,25 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun BleAdvertisingScreen(modifier: Modifier = Modifier) {
+fun BleAdvertisingScreen(
+    bleKeyManager: BleKeyManager,
+    onLogout: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     val context = LocalContext.current
     val bleAdvertiser = remember { BleAdvertiser(context) }
     val status by bleAdvertiser.status.collectAsState()
+    var currentUuid by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
 
     val bluetoothEnableLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == android.app.Activity.RESULT_OK) {
-            bleAdvertiser.startAdvertising()
+            scope.launch {
+                currentUuid = bleKeyManager.getDailyUuid()
+                currentUuid?.let { bleAdvertiser.startAdvertising(it) }
+            }
         }
     }
 
@@ -69,12 +106,15 @@ fun BleAdvertisingScreen(modifier: Modifier = Modifier) {
     ) { permissions ->
         val allGranted = permissions.entries.all { it.value }
         if (allGranted) {
-            bleAdvertiser.startAdvertising()
+            scope.launch {
+                currentUuid = bleKeyManager.getDailyUuid()
+                currentUuid?.let { bleAdvertiser.startAdvertising(it) }
+            }
         }
     }
 
     Column(
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -93,7 +133,17 @@ fun BleAdvertisingScreen(modifier: Modifier = Modifier) {
                         val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
                         bluetoothEnableLauncher.launch(enableBtIntent)
                     } else {
-                        bleAdvertiser.startAdvertising()
+                        scope.launch {
+                            currentUuid = bleKeyManager.getDailyUuid()
+                            if (currentUuid != null) {
+                                bleAdvertiser.startAdvertising(currentUuid!!)
+                            } else {
+                                // Handle error fetching key (e.g. 401 triggered token clearing)
+                                if (ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_ADVERTISE) != PackageManager.PERMISSION_GRANTED) {
+                                    // This is just a safety check
+                                }
+                            }
+                        }
                     }
                 } else {
                     launcher.launch(requiredPermissions)
@@ -106,9 +156,13 @@ fun BleAdvertisingScreen(modifier: Modifier = Modifier) {
 
         OutlinedButton(
             onClick = { bleAdvertiser.stopAdvertising() },
-            modifier = Modifier.fillMaxWidth(0.7f)
+            modifier = Modifier.fillMaxWidth(0.7f).padding(bottom = 32.dp)
         ) {
             Text("Stop Advertising")
+        }
+
+        TextButton(onClick = onLogout) {
+            Text("Logout")
         }
     }
 }

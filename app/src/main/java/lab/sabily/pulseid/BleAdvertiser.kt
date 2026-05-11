@@ -51,7 +51,7 @@ class BleAdvertiser(private val context: Context) {
         }
     }
 
-    fun startAdvertising() {
+    fun startAdvertising(uuidString: String) {
         if (bluetoothAdapter == null) {
             _status.value = "Error: Bluetooth not supported"
             return
@@ -76,7 +76,7 @@ class BleAdvertiser(private val context: Context) {
 
         val data = AdvertiseData.Builder()
             .setIncludeDeviceName(true)
-            .addServiceUuid(ParcelUuid(SERVICE_UUID))
+            .addServiceUuid(ParcelUuid(UUID.fromString(uuidString)))
             .build()
 
         try {

@@ -1,0 +1,88 @@
+package lab.sabily.pulseid.ui
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.unit.dp
+import lab.sabily.pulseid.data.LoginRequest
+import lab.sabily.pulseid.data.NetworkModule
+import lab.sabily.pulseid.data.SecurityManager
+import kotlinx.coroutines.launch
+
+@Composable
+fun LoginScreen(
+    securityManager: SecurityManager,
+    networkModule: NetworkModule,
+    onLoginSuccess: () -> Unit
+) {
+    var uuid by remember { mutableStateOf(securityManager.getEmployeeUuid() ?: "") }
+    var password by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+
+    Column(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("Employee Login", style = MaterialTheme.typography.headlineMedium)
+        Spacer(modifier = Modifier.height(32.dp))
+
+        OutlinedTextField(
+            value = uuid,
+            onValueChange = { uuid = it },
+            label = { Text("Employee UUID") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = password,
+            onValueChange = { password = it },
+            label = { Text("Password") },
+            visualTransformation = PasswordVisualTransformation(),
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+
+        if (errorMessage != null) {
+            Text(errorMessage!!, color = MaterialTheme.colorScheme.error)
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        Button(
+            onClick = {
+                isLoading = true
+                errorMessage = null
+                scope.launch {
+                    try {
+                        val response = networkModule.api.login(LoginRequest(uuid, password))
+                        if (response.success) {
+                            securityManager.saveToken(response.token)
+                            securityManager.saveEmployeeUuid(uuid)
+                            onLoginSuccess()
+                        } else {
+                            errorMessage = "Login failed"
+                        }
+                    } catch (e: Exception) {
+                        errorMessage = e.message ?: "An error occurred"
+                    } finally {
+                        isLoading = false
+                    }
+                }
+            },
+            enabled = !isLoading && uuid.isNotEmpty() && password.isNotEmpty(),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            if (isLoading) {
+                CircularProgressIndicator(modifier = Modifier.size(24.dp))
+            } else {
+                Text("Login")
+            }
+        }
+    }
+}
