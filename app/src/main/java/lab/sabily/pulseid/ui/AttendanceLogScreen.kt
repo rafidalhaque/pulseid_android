@@ -36,7 +36,7 @@ fun AttendanceLogScreen(authApi: AuthApi) {
         try {
             val response = authApi.getAttendanceLogs()
             if (response.success) {
-                logs = response.log.sortedByDescending { it.recorded_timestamp }
+                logs = response.log.sortedByDescending { it.recordedTimestamp }
                 error = null
             } else {
                 error = "Failed to fetch logs"
@@ -110,18 +110,18 @@ fun AttendanceLogItem(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = log.employee_name ?: "Unknown Employee",
+                    text = log.employeeName ?: "Unknown Employee",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
                 Badge(
-                    containerColor = if (log.event_type == "IN") 
+                    containerColor = if (log.eventType == "IN") 
                         MaterialTheme.colorScheme.primaryContainer 
                     else 
                         MaterialTheme.colorScheme.secondaryContainer
                 ) {
                     Text(
-                        text = log.event_type,
+                        text = log.eventType,
                         style = MaterialTheme.typography.labelSmall,
                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
                     )
@@ -130,7 +130,7 @@ fun AttendanceLogItem(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            val formattedTime = log.recorded_timestamp?.let { timestamp ->
+            val formattedTime = log.recordedTimestamp?.let { timestamp ->
                 try {
                     val date = isoFormat.parse(timestamp)
                     date?.let { displayFormat.format(it) } ?: timestamp
@@ -146,14 +146,14 @@ fun AttendanceLogItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "RSSI: ${log.recorded_rssi.toInt()} dBm",
+                    text = "RSSI: ${log.recordedRssi.toInt()} dBm",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             
             Text(
-                text = "UUID: ${log.ble_uuid}",
+                text = "UUID: ${log.bleUuid}",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.outline,
                 modifier = Modifier.padding(top = 4.dp)
