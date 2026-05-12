@@ -23,7 +23,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.ui.text.font.FontWeight
 import androidx.core.content.ContextCompat
+import lab.sabily.pulseid.data.AttendanceRecord
+import lab.sabily.pulseid.data.AuthApi
 import lab.sabily.pulseid.data.BleKeyManager
 import lab.sabily.pulseid.data.NetworkModule
 import lab.sabily.pulseid.data.SecurityManager
@@ -31,6 +38,8 @@ import lab.sabily.pulseid.ui.LoginScreen
 import lab.sabily.pulseid.ui.ProfileScreen
 import lab.sabily.pulseid.ui.theme.PulseIDTheme
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.*
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -77,7 +86,8 @@ class MainActivity : ComponentActivity() {
                         Box(modifier = Modifier.padding(innerPadding)) {
                             when (selectedTab) {
                                 0 -> BleAdvertisingScreen(
-                                    bleKeyManager = bleKeyManager
+                                    bleKeyManager = bleKeyManager,
+                                    authApi = networkModule.api
                                 )
                                 1 -> ProfileScreen(
                                     securityManager = securityManager,
@@ -98,6 +108,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun BleAdvertisingScreen(
     bleKeyManager: BleKeyManager,
+    authApi: AuthApi,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -105,6 +116,20 @@ fun BleAdvertisingScreen(
     val status by bleAdvertiser.status.collectAsState()
     var currentUuid by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+
+    var presentEmployees by remember { mutableStateOf<List<AttendanceRecord>>(emptyList()) }
+    var isLoadingPresent by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        isLoadingPresent = true
+        try {
+            presentEmployees = authApi.getPresentEmployees()
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "Failed to fetch present employees", e)
+        } finally {
+            isLoadingPresent = false
+        }
+    }
 
     val bluetoothEnableLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -153,9 +178,11 @@ fun BleAdvertisingScreen(
 
     Column(
         modifier = modifier.fillMaxSize().padding(16.dp),
-        verticalArrangement = Arrangement.Center,
+        verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Spacer(modifier = Modifier.height(48.dp))
+
         Text(text = "BLE Advertising Status:", style = MaterialTheme.typography.titleMedium)
         Text(text = status, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(bottom = 24.dp))
 
@@ -189,6 +216,102 @@ fun BleAdvertisingScreen(
             modifier = Modifier.fillMaxWidth(0.7f).padding(bottom = 32.dp)
         ) {
             Text(if (isAdvertising) "Stop Advertising" else "Start Advertising")
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        CurrentlyInOfficeCard(
+            employees = presentEmployees,
+            isLoading = isLoadingPresent
+        )
+    }
+}
+
+@Composable
+fun CurrentlyInOfficeCard(
+    employees: List<AttendanceRecord>,
+    isLoading: Boolean
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val timeFormat = remember { SimpleDateFormat("hh:mm a", Locale.getDefault()) }
+    val isoFormat = remember { SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()) }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "Currently In Office",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = if (isLoading) "Loading..." else "${employees.size} employees present",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+                IconButton(onClick = { expanded = !expanded }) {
+                    Icon(
+                        imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = if (expanded) "Collapse" else "Expand"
+                    )
+                }
+            }
+
+            if (expanded && employees.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(16.dp))
+                LazyColumn(
+                    modifier = Modifier.heightIn(max = 300.dp)
+                ) {
+                    items(employees) { record ->
+                        val formattedTime = try {
+                            val date = isoFormat.parse(record.entry_time)
+                            date?.let { timeFormat.format(it) } ?: record.entry_time
+                        } catch (e: Exception) {
+                            record.entry_time
+                        }
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = record.employee_name,
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text(
+                                text = formattedTime,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        HorizontalDivider(
+                            thickness = 0.5.dp,
+                            color = MaterialTheme.colorScheme.outlineVariant
+                        )
+                    }
+                }
+            } else if (expanded && !isLoading) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "No employees currently in office",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
+            }
         }
     }
 }

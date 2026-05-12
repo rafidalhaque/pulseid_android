@@ -18,6 +18,9 @@ interface AuthApi {
 
     @GET("/api/employee_key")
     suspend fun getEmployeeKey(): EmployeeKeyResponse
+
+    @GET("/api/attendance/present")
+    suspend fun getPresentEmployees(): List<AttendanceRecord>
 }
 
 class NetworkModule(private val securityManager: SecurityManager) {
