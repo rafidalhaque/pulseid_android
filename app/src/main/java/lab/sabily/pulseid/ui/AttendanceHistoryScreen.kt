@@ -9,6 +9,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import lab.sabily.pulseid.data.AttendanceRecord
@@ -18,13 +19,14 @@ import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AttendanceHistoryScreen(authApi: AuthApi) {
+fun AttendanceHistoryScreen(authApi: AuthApi, isAdmin: Boolean) {
     var allRecords by remember { mutableStateOf<List<AttendanceRecord>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
 
     var fromDate by remember { mutableStateOf<Long?>(null) }
     var toDate by remember { mutableStateOf<Long?>(null) }
+    var showAllRecords by remember { mutableStateOf(false) }
 
     var showFromDatePicker by remember { mutableStateOf(false) }
     var showToDatePicker by remember { mutableStateOf(false) }
@@ -34,9 +36,10 @@ fun AttendanceHistoryScreen(authApi: AuthApi) {
     val isoFormat = remember { SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()) }
     val timeFormat = remember { SimpleDateFormat("hh:mm a", Locale.getDefault()) }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(showAllRecords) {
+        isLoading = true
         try {
-            val response = authApi.getAttendanceHistory()
+            val response = authApi.getAttendanceHistory(all = if (showAllRecords) true else null)
             if (response.success) {
                 allRecords = response.records.sortedByDescending { it.date }
             } else {
@@ -59,11 +62,28 @@ fun AttendanceHistoryScreen(authApi: AuthApi) {
     }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text(
-            text = "Attendance History",
-            style = MaterialTheme.typography.headlineMedium,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Attendance History",
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            if (isAdmin) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("All", style = MaterialTheme.typography.labelMedium)
+                    Switch(
+                        checked = showAllRecords,
+                        onCheckedChange = { showAllRecords = it },
+                        modifier = Modifier.scale(0.7f)
+                    )
+                }
+            }
+        }
 
         // Date Range Filters
         Row(
@@ -189,7 +209,7 @@ fun AttendanceHistoryItem(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                val date = dateFormat.parse(record.date)
+                val date = try { dateFormat.parse(record.date) } catch (e: Exception) { null }
                 Text(
                     text = date?.let { displayFormat.format(it) } ?: record.date,
                     style = MaterialTheme.typography.titleMedium,
@@ -199,10 +219,12 @@ fun AttendanceHistoryItem(
                 // Duration
                 val durationText = if (record.exit_time == null) {
                     "Still In Office"
+                } else if (record.entry_time == null) {
+                    "N/A"
                 } else {
                     try {
-                        val entry = isoFormat.parse(record.entry_time)
-                        val exit = isoFormat.parse(record.exit_time)
+                        val entry = isoFormat.parse(record.entry_time!!)
+                        val exit = isoFormat.parse(record.exit_time!!)
                         if (entry != null && exit != null) {
                             val diff = exit.time - entry.time
                             val hours = diff / (1000 * 60 * 60)
@@ -220,16 +242,25 @@ fun AttendanceHistoryItem(
                 )
             }
             
-            Spacer(modifier = Modifier.height(8.dp))
+            if (record.employee_name != null) {
+                Text(
+                    text = record.employee_name!!,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
             
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                 Column {
                     Text(text = "Entry", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-                    val entryTime = try {
-                        val d = isoFormat.parse(record.entry_time)
-                        d?.let { timeFormat.format(it) } ?: record.entry_time
-                    } catch (e: Exception) {
-                        record.entry_time
+                    val entryTime = if (record.entry_time == null) "--:--" else {
+                        try {
+                            val d = isoFormat.parse(record.entry_time!!)
+                            d?.let { timeFormat.format(it) } ?: record.entry_time!!
+                        } catch (e: Exception) {
+                            record.entry_time!!
+                        }
                     }
                     Text(text = entryTime, style = MaterialTheme.typography.bodyLarge)
                 }
@@ -238,10 +269,10 @@ fun AttendanceHistoryItem(
                     Text(text = "Exit", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                     val exitTime = if (record.exit_time == null) "--:--" else {
                         try {
-                            val d = isoFormat.parse(record.exit_time)
-                            d?.let { timeFormat.format(it) } ?: record.exit_time
+                            val d = isoFormat.parse(record.exit_time!!)
+                            d?.let { timeFormat.format(it) } ?: record.exit_time!!
                         } catch (e: Exception) {
-                            record.exit_time
+                            record.exit_time!!
                         }
                     }
                     Text(text = exitTime, style = MaterialTheme.typography.bodyLarge)
