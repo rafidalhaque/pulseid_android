@@ -13,6 +13,7 @@ import retrofit2.http.GET
 import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.Part
+import retrofit2.http.Query
 import okhttp3.MultipartBody
 
 interface AuthApi {
@@ -29,7 +30,7 @@ interface AuthApi {
     suspend fun getPresentEmployees(): List<AttendanceRecord>
 
     @GET("/api/attendance_history")
-    suspend fun getAttendanceHistory(): AttendanceHistoryResponse
+    suspend fun getAttendanceHistory(@Query("all") all: Boolean? = null): AttendanceHistoryResponse
 
     @Multipart
     @POST("/api/import-employee")

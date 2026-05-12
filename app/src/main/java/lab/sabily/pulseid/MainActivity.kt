@@ -124,7 +124,8 @@ class MainActivity : ComponentActivity() {
                                     authApi = networkModule.api
                                 )
                                 1 -> AttendanceHistoryScreen(
-                                    authApi = networkModule.api
+                                    authApi = networkModule.api,
+                                    isAdmin = isAdmin
                                 )
                                 2 -> {
                                     if (isAdmin) {
