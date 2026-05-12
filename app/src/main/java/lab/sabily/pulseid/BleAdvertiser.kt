@@ -19,13 +19,9 @@ class BleAdvertiser(private val context: Context) {
     private val TAG = "BleAdvertiser"
     private val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
     private val bluetoothAdapter: BluetoothAdapter? = bluetoothManager.adapter
-    private val advertiser: BluetoothLeAdvertiser? = bluetoothAdapter?.bluetoothLeAdvertiser
 
     private val _status = MutableStateFlow("Idle")
     val status: StateFlow<String> = _status.asStateFlow()
-
-    // User-specified UUID for the service
-    private val SERVICE_UUID = UUID.fromString("a5b5f91e-20df-b292-5dd4-ca4678386df4")
 
     private val callback = object : AdvertiseCallback() {
         override fun onStartSuccess(settingsInEffect: AdvertiseSettings) {
@@ -52,17 +48,25 @@ class BleAdvertiser(private val context: Context) {
     }
 
     fun startAdvertising(uuidString: String) {
-        if (bluetoothAdapter == null) {
+        val adapter = bluetoothAdapter
+        if (adapter == null) {
             _status.value = "Error: Bluetooth not supported"
             return
         }
 
-        if (!bluetoothAdapter.isEnabled) {
+        if (!adapter.isEnabled) {
             _status.value = "Error: Bluetooth is OFF"
             return
         }
 
+        val advertiser = adapter.bluetoothLeAdvertiser
         if (advertiser == null) {
+            val isMultiAdv = adapter.isMultipleAdvertisementSupported
+            val isLe2M = adapter.isLe2MPhySupported
+            val isExtAdv = adapter.isLeExtendedAdvertisingSupported
+
+            Log.e(TAG, "BLE Advertising not supported. MultiAdv: $isMultiAdv, Le2M: $isLe2M, ExtAdv: $isExtAdv")
+
             _status.value = "Error: Bluetooth LE Advertising not supported"
             return
         }
@@ -75,7 +79,8 @@ class BleAdvertiser(private val context: Context) {
             .build()
 
         val data = AdvertiseData.Builder()
-            .setIncludeDeviceName(true)
+            .setIncludeDeviceName(false) // Avoid "Data too large" errors
+            .setIncludeTxPowerLevel(true)
             .addServiceUuid(ParcelUuid(UUID.fromString(uuidString)))
             .build()
 
@@ -85,17 +90,29 @@ class BleAdvertiser(private val context: Context) {
         } catch (e: SecurityException) {
             Log.e(TAG, "SecurityException: Missing permissions to advertise", e)
             _status.value = "Error: Missing Permissions"
+        } catch (e: Exception) {
+            Log.e(TAG, "Error starting advertising", e)
+            _status.value = "Error: ${e.message}"
         }
     }
 
     fun stopAdvertising() {
+        val advertiser = bluetoothAdapter?.bluetoothLeAdvertiser
+        if (advertiser == null) {
+            _status.value = "Idle"
+            return
+        }
+
         try {
-            advertiser?.stopAdvertising(callback)
+            advertiser.stopAdvertising(callback)
             _status.value = "Idle"
             Log.d(TAG, "BLE Advertising stopped")
         } catch (e: SecurityException) {
             Log.e(TAG, "SecurityException: Missing permissions to stop advertising", e)
             _status.value = "Error: Missing Permissions"
+        } catch (e: Exception) {
+            Log.e(TAG, "Error stopping advertising", e)
+            _status.value = "Error: ${e.message}"
         }
     }
 }

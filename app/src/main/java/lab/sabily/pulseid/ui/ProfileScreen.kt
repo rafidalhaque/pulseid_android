@@ -17,7 +17,7 @@ import java.net.URL
 private const val BASE_URL = "https://pulseid.teamsabily.online"
 
 @Composable
-fun ProfileScreen(securityManager: SecurityManager) {
+fun ProfileScreen(securityManager: SecurityManager, onLogout: () -> Unit) {
     var profile by remember { mutableStateOf<ProfileResponse?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -56,7 +56,7 @@ fun ProfileScreen(securityManager: SecurityManager) {
         } else if (profile != null) {
             Column(
                 modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.Center,
+                verticalArrangement = Arrangement.Top,
                 horizontalAlignment = Alignment.Start
             ) {
                 Text(text = "Profile", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(bottom = 24.dp))
@@ -66,6 +66,16 @@ fun ProfileScreen(securityManager: SecurityManager) {
                 ProfileItem(label = "Designation", value = profile!!.designation)
                 ProfileItem(label = "Join Date", value = profile!!.join_date ?: "N/A")
                 ProfileItem(label = "ID Number", value = profile!!.id_no)
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                Button(
+                    onClick = onLogout,
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer, contentColor = MaterialTheme.colorScheme.onErrorContainer)
+                ) {
+                    Text("Logout")
+                }
             }
         }
     }
