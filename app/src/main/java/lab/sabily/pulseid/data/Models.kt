@@ -27,7 +27,8 @@ data class ProfileResponse(
     val id_no: String,
     val join_date: String?,
     val designation: String,
-    val position: String
+    val position: String,
+    val is_admin: String
 )
 
 @Serializable

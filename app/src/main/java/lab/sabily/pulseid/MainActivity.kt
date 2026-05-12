@@ -38,6 +38,7 @@ import lab.sabily.pulseid.ui.LoginScreen
 import lab.sabily.pulseid.ui.ProfileScreen
 import lab.sabily.pulseid.ui.theme.PulseIDTheme
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -122,13 +123,15 @@ fun BleAdvertisingScreen(
 
     LaunchedEffect(Unit) {
         isLoadingPresent = true
-        try {
-            presentEmployees = authApi.getPresentEmployees()
-        } catch (e: Exception) {
-            android.util.Log.e("MainActivity", "Failed to fetch present employees", e)
-        } finally {
-            isLoadingPresent = false
+        for (i in 1..12) {
+            try {
+                presentEmployees = authApi.getPresentEmployees()
+            } catch (e: Exception) {
+                android.util.Log.e("MainActivity", "Failed to fetch present employees", e)
+            }
+            delay(1000)
         }
+        isLoadingPresent = false
     }
 
     val bluetoothEnableLauncher = rememberLauncherForActivityResult(
