@@ -18,3 +18,14 @@ data class LoginResponse(
 data class EmployeeKeyResponse(
     val master_secret: String
 )
+
+@Serializable
+data class ProfileResponse(
+    val id: String,
+    val name: String,
+    val email: String,
+    val id_no: String,
+    val join_date: String?,
+    val designation: String,
+    val position: String
+)
