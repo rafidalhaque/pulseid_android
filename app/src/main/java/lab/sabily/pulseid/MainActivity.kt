@@ -14,6 +14,9 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,6 +28,7 @@ import lab.sabily.pulseid.data.BleKeyManager
 import lab.sabily.pulseid.data.NetworkModule
 import lab.sabily.pulseid.data.SecurityManager
 import lab.sabily.pulseid.ui.LoginScreen
+import lab.sabily.pulseid.ui.ProfileScreen
 import lab.sabily.pulseid.ui.theme.PulseIDTheme
 import kotlinx.coroutines.launch
 
@@ -40,8 +44,29 @@ class MainActivity : ComponentActivity() {
         setContent {
             PulseIDTheme {
                 val isAuthenticated by securityManager.isAuthenticated.collectAsState()
+                var selectedTab by remember { mutableIntStateOf(0) }
 
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                Scaffold(
+                    modifier = Modifier.fillMaxSize(),
+                    bottomBar = {
+                        if (isAuthenticated) {
+                            NavigationBar {
+                                NavigationBarItem(
+                                    selected = selectedTab == 0,
+                                    onClick = { selectedTab = 0 },
+                                    icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
+                                    label = { Text("Home") }
+                                )
+                                NavigationBarItem(
+                                    selected = selectedTab == 1,
+                                    onClick = { selectedTab = 1 },
+                                    icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
+                                    label = { Text("Profile") }
+                                )
+                            }
+                        }
+                    }
+                ) { innerPadding ->
                     if (!isAuthenticated) {
                         LoginScreen(
                             securityManager = securityManager,
@@ -49,14 +74,18 @@ class MainActivity : ComponentActivity() {
                             onLoginSuccess = { /* Flow will update automatically */ }
                         )
                     } else {
-                        BleAdvertisingScreen(
-                            bleKeyManager = bleKeyManager,
-                            onLogout = { 
-                                securityManager.clearToken()
-                                bleKeyManager.clearSecret()
-                            },
-                            modifier = Modifier.padding(innerPadding)
-                        )
+                        Box(modifier = Modifier.padding(innerPadding)) {
+                            when (selectedTab) {
+                                0 -> BleAdvertisingScreen(
+                                    bleKeyManager = bleKeyManager,
+                                    onLogout = { 
+                                        securityManager.clearToken()
+                                        bleKeyManager.clearSecret()
+                                    }
+                                )
+                                1 -> ProfileScreen(securityManager = securityManager)
+                            }
+                        }
                     }
                 }
             }
