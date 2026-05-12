@@ -54,3 +54,20 @@ data class AttendanceHistoryResponse(
     val success: Boolean,
     val records: List<AttendanceRecord>
 )
+
+@Serializable
+data class AttendanceLogRecord(
+    val id: String,
+    val employee_id: String,
+    val employee_name: String?,
+    val ble_uuid: String,
+    val recorded_rssi: Float,
+    val recorded_timestamp: String?,
+    val event_type: String
+)
+
+@Serializable
+data class AttendanceLogResponse(
+    val success: Boolean,
+    val log: List<AttendanceLogRecord>
+)

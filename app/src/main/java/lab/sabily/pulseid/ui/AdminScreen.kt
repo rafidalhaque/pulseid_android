@@ -12,32 +12,57 @@ import lab.sabily.pulseid.data.AuthApi
 
 @Composable
 fun AdminScreen(authApi: AuthApi) {
-    var showImport by remember { mutableStateOf(false) }
+    var currentSubScreen by remember { mutableStateOf<AdminSubScreen?>(null) }
 
-    if (showImport) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            IconButton(
-                onClick = { showImport = false },
-                modifier = Modifier.padding(8.dp)
-            ) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+    when (currentSubScreen) {
+        AdminSubScreen.IMPORT -> {
+            Column(modifier = Modifier.fillMaxSize()) {
+                IconButton(
+                    onClick = { currentSubScreen = null },
+                    modifier = Modifier.padding(8.dp)
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                }
+                ImportEmployeeScreen(authApi = authApi)
             }
-            ImportEmployeeScreen(authApi = authApi)
         }
-    } else {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Button(
-                onClick = { showImport = true },
-                modifier = Modifier.fillMaxWidth()
+        AdminSubScreen.LOGS -> {
+            Column(modifier = Modifier.fillMaxSize()) {
+                IconButton(
+                    onClick = { currentSubScreen = null },
+                    modifier = Modifier.padding(8.dp)
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                }
+                AttendanceLogScreen(authApi = authApi)
+            }
+        }
+        null -> {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically)
             ) {
-                Text("Import Employee")
+                Button(
+                    onClick = { currentSubScreen = AdminSubScreen.IMPORT },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Import Employee")
+                }
+                
+                Button(
+                    onClick = { currentSubScreen = AdminSubScreen.LOGS },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Attendance Logs")
+                }
             }
         }
     }
+}
+
+enum class AdminSubScreen {
+    IMPORT, LOGS
 }

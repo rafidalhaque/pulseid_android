@@ -32,6 +32,9 @@ interface AuthApi {
     @GET("/api/attendance/history")
     suspend fun getAttendanceHistory(@Query("all") all: Boolean? = null): AttendanceHistoryResponse
 
+    @GET("/api/attendance/log")
+    suspend fun getAttendanceLogs(): AttendanceLogResponse
+
     @Multipart
     @POST("/api/import-employee")
     suspend fun importEmployees(@Part file: MultipartBody.Part): ImportEmployeeResponse
