@@ -42,3 +42,9 @@ data class AttendanceRecord(
     val entry_comment: String?,
     val exit_comment: String?
 )
+
+@Serializable
+data class AttendanceHistoryResponse(
+    val success: Boolean,
+    val records: List<AttendanceRecord>
+)
