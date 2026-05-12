@@ -23,6 +23,8 @@ fun LoginScreen(
     onLoginSuccess: () -> Unit
 ) {
     var uuid by remember { mutableStateOf(securityManager.getEmployeeUuid() ?: "") }
+    val isFromKeystore = remember(uuid) { securityManager.getEmployeeUuid() != null && uuid == securityManager.getEmployeeUuid() }
+    
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
@@ -39,8 +41,9 @@ fun LoginScreen(
 
         OutlinedTextField(
             value = uuid,
-            onValueChange = { uuid = it },
+            onValueChange = { if (!isFromKeystore) uuid = it },
             label = { Text("Employee UUID") },
+            readOnly = isFromKeystore,
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(modifier = Modifier.height(8.dp))
@@ -96,6 +99,20 @@ fun LoginScreen(
             } else {
                 Text("Login")
             }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        TextButton(
+            onClick = {
+                securityManager.clearAllData()
+                uuid = ""
+                password = ""
+                errorMessage = null
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Clear Data", color = MaterialTheme.colorScheme.error)
         }
     }
 }

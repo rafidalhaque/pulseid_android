@@ -48,6 +48,16 @@ class SecurityManager(context: Context) {
 
     fun getEmployeeUuid(): String? = prefs.getString(KEY_EMPLOYEE_UUID, null)
 
+    fun clearEmployeeUuid() {
+        prefs.edit().remove(KEY_EMPLOYEE_UUID).apply()
+    }
+
+    fun clearAllData() {
+        android.util.Log.d("SecurityManager", "Clearing all data")
+        prefs.edit().clear().apply()
+        _isAuthenticated.value = false
+    }
+
     companion object {
         private const val KEY_TOKEN = "auth_token"
         private const val KEY_EMPLOYEE_UUID = "employee_uuid"

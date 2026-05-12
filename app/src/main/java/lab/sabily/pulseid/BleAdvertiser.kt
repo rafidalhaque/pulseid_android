@@ -20,14 +20,14 @@ class BleAdvertiser(private val context: Context) {
     private val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
     private val bluetoothAdapter: BluetoothAdapter? = bluetoothManager.adapter
 
-    private val _status = MutableStateFlow("Idle")
+    private val _status = MutableStateFlow("Stopped")
     val status: StateFlow<String> = _status.asStateFlow()
 
     private val callback = object : AdvertiseCallback() {
         override fun onStartSuccess(settingsInEffect: AdvertiseSettings) {
             super.onStartSuccess(settingsInEffect)
             Log.d(TAG, "BLE Advertising started successfully")
-            _status.value = "Advertising"
+            _status.value = "Started"
             Toast.makeText(context, "BLE Advertising started!", Toast.LENGTH_SHORT).show()
         }
 
@@ -99,13 +99,13 @@ class BleAdvertiser(private val context: Context) {
     fun stopAdvertising() {
         val advertiser = bluetoothAdapter?.bluetoothLeAdvertiser
         if (advertiser == null) {
-            _status.value = "Idle"
+            _status.value = "Stopped"
             return
         }
 
         try {
             advertiser.stopAdvertising(callback)
-            _status.value = "Idle"
+            _status.value = "Stopped"
             Log.d(TAG, "BLE Advertising stopped")
         } catch (e: SecurityException) {
             Log.e(TAG, "SecurityException: Missing permissions to stop advertising", e)
