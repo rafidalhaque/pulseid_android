@@ -1,5 +1,6 @@
 package lab.sabily.pulseid.data
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -21,14 +22,8 @@ data class EmployeeKeyResponse(
 
 @Serializable
 data class ProfileResponse(
-    val id: String,
-    val name: String,
-    val email: String,
-    val id_no: String,
-    val join_date: String?,
-    val designation: String,
-    val position: String,
-    val is_admin: Boolean
+    val success: Boolean,
+    val employee: Employee
 )
 
 @Serializable
@@ -40,13 +35,13 @@ data class ImportEmployeeResponse(
 @Serializable
 data class AttendanceRecord(
     val id: String,
-    val employee_id: String,
-    val employee_name: String?,
+    @SerialName("employee_id") val employeeId: String,
+    @SerialName("employee_name") val employeeName: String?,
     val date: String,
-    val entry_time: String?,
-    val exit_time: String?,
-    val entry_comment: String?,
-    val exit_comment: String?
+    @SerialName("entry_time") val entryTime: String?,
+    @SerialName("exit_time") val exitTime: String?,
+    @SerialName("entry_comment") val entryComment: String?,
+    @SerialName("exit_comment") val exitComment: String?
 )
 
 @Serializable
@@ -58,12 +53,12 @@ data class AttendanceHistoryResponse(
 @Serializable
 data class AttendanceLogRecord(
     val id: String,
-    val employee_id: String,
-    val employee_name: String?,
-    val ble_uuid: String,
-    val recorded_rssi: Float,
-    val recorded_timestamp: String?,
-    val event_type: String
+    @SerialName("employee_id") val employeeId: String,
+    @SerialName("employee_name") val employeeName: String?,
+    @SerialName("ble_uuid") val bleUuid: String,
+    @SerialName("recorded_rssi") val recordedRssi: Float,
+    @SerialName("recorded_timestamp") val recordedTimestamp: String?,
+    @SerialName("event_type") val eventType: String
 )
 
 @Serializable
@@ -77,11 +72,11 @@ data class Employee(
     val id: String,
     val name: String,
     val email: String,
-    val id_number: String,
-    val join_date: String?,
+    @SerialName("id_number") val idNumber: String,
+    @SerialName("join_date") val joinDate: String?,
     val designation: String,
     val position: String,
-    val is_admin: Boolean
+    @SerialName("is_admin") val isAdmin: Boolean
 )
 
 @Serializable

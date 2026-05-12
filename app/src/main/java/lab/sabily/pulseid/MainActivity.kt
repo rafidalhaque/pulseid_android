@@ -68,8 +68,8 @@ class MainActivity : ComponentActivity() {
                 LaunchedEffect(isAuthenticated) {
                     if (isAuthenticated) {
                         try {
-                            val profile = networkModule.api.getProfile()
-                            isAdmin = profile.is_admin
+                            val response = networkModule.api.getProfile()
+                            isAdmin = response.employee.isAdmin
                         } catch (e: Exception) {
                             android.util.Log.e("MainActivity", "Failed to fetch profile for admin check", e)
                         }
@@ -358,7 +358,7 @@ fun CurrentlyInOfficeCard(
                     modifier = Modifier.heightIn(max = 300.dp)
                 ) {
                     items(employees) { record ->
-                        val formattedTime = record.entry_time?.let { entryTime ->
+                        val formattedTime = record.entryTime?.let { entryTime ->
                             try {
                                 val date = isoFormat.parse(entryTime)
                                 date?.let { timeFormat.format(it) } ?: entryTime
@@ -375,7 +375,7 @@ fun CurrentlyInOfficeCard(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = record.employee_name ?: "Unknown",
+                                text = record.employeeName ?: "Unknown",
                                 style = MaterialTheme.typography.bodyLarge,
                                 modifier = Modifier.weight(1f)
                             )
