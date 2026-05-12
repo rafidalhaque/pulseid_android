@@ -36,6 +36,12 @@ jobs:
       - name: Build Release APK
         run: ./gradlew assembleRelease --stacktrace
 
+      - name: Extract Version
+        id: ext_version
+        run: |
+          VERSION_NAME=$(grep 'versionName =' app/build.gradle.kts | sed 's/.*"\(.*\)".*/\1/')
+          echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_OUTPUT
+
       - name: Sign APK
         id: sign_app
         run: |
@@ -67,8 +73,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: ${{ steps.sign_app.outputs.signedReleaseFile }}
-          tag_name: v1.1.${{ github.run_number }}
-          name: Release v1.1.${{ github.run_number }}
+          tag_name: v${{ steps.ext_version.outputs.VERSION_NAME }}.${{ github.run_number }}
+          name: Release v${{ steps.ext_version.outputs.VERSION_NAME }}.${{ github.run_number }}
           body: ${{ env.RELEASE_BODY }}
           draft: false
           prerelease: false
@@ -85,7 +91,7 @@ jobs:
 
           CAPTION_FILE="$(mktemp)"
           trap 'rm -f "$CAPTION_FILE"' EXIT
-          printf 'Release v1.1.${{ github.run_number }}\n\n%s' "$RELEASE_BODY" > "$CAPTION_FILE"
+          printf 'Release v${{ steps.ext_version.outputs.VERSION_NAME }}.${{ github.run_number }}\n\n%s' "$RELEASE_BODY" > "$CAPTION_FILE"
 
           curl --fail --silent --show-error \
             -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" \
