@@ -71,3 +71,28 @@ data class AttendanceLogResponse(
     val success: Boolean,
     val log: List<AttendanceLogRecord>
 )
+
+@Serializable
+data class Employee(
+    val id: String,
+    val name: String,
+    val email: String,
+    val id_number: String,
+    val join_date: String?,
+    val designation: String,
+    val position: String,
+    val is_admin: Boolean
+)
+
+@Serializable
+data class AllMembersResponse(
+    val success: Boolean,
+    val employee: List<Employee>
+)
+
+@Serializable
+data class MemberDetailResponse(
+    val success: Boolean,
+    val employee: Employee,
+    val history: List<AttendanceRecord>
+)

@@ -35,6 +35,12 @@ interface AuthApi {
     @GET("/api/attendance/log")
     suspend fun getAttendanceLogs(): AttendanceLogResponse
 
+    @GET("/api/profile")
+    suspend fun getAllMembers(@Query("all") all: Boolean = true): AllMembersResponse
+
+    @GET("/api/profile")
+    suspend fun getMemberDetail(@Query("uuid") uuid: String): MemberDetailResponse
+
     @Multipart
     @POST("/api/import-employee")
     suspend fun importEmployees(@Part file: MultipartBody.Part): ImportEmployeeResponse
