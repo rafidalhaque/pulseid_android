@@ -134,15 +134,14 @@ fun BleAdvertisingScreen(
 
     LaunchedEffect(Unit) {
         isLoadingPresent = true
-        for (i in 1..12) {
+        while (true) {
             try {
                 presentEmployees = authApi.getPresentEmployees()
             } catch (e: Exception) {
                 android.util.Log.e("MainActivity", "Failed to fetch present employees", e)
             }
-            delay(1000)
+            delay(5000)
         }
-        isLoadingPresent = false
     }
 
     val bluetoothEnableLauncher = rememberLauncherForActivityResult(
@@ -188,7 +187,7 @@ fun BleAdvertisingScreen(
         }
     }
 
-    val isAdvertising = status == "Advertising" || status == "Starting..."
+    val isAdvertising = status == "Started" || status == "Starting..."
 
     Column(
         modifier = modifier.fillMaxSize().padding(16.dp),
@@ -197,7 +196,7 @@ fun BleAdvertisingScreen(
     ) {
         Spacer(modifier = Modifier.height(48.dp))
 
-        Text(text = "BLE Advertising Status:", style = MaterialTheme.typography.titleMedium)
+        Text(text = "Status:", style = MaterialTheme.typography.titleMedium)
         Text(text = status, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(bottom = 24.dp))
 
         Button(
@@ -229,7 +228,7 @@ fun BleAdvertisingScreen(
             },
             modifier = Modifier.fillMaxWidth(0.7f).padding(bottom = 32.dp)
         ) {
-            Text(if (isAdvertising) "Stop Advertising" else "Start Advertising")
+            Text(if (isAdvertising) "Stop" else "Start")
         }
 
         Spacer(modifier = Modifier.height(16.dp))
