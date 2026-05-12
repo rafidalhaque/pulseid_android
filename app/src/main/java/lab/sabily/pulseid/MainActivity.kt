@@ -15,6 +15,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
@@ -34,6 +35,7 @@ import lab.sabily.pulseid.data.AuthApi
 import lab.sabily.pulseid.data.BleKeyManager
 import lab.sabily.pulseid.data.NetworkModule
 import lab.sabily.pulseid.data.SecurityManager
+import lab.sabily.pulseid.ui.AttendanceHistoryScreen
 import lab.sabily.pulseid.ui.LoginScreen
 import lab.sabily.pulseid.ui.ProfileScreen
 import lab.sabily.pulseid.ui.theme.PulseIDTheme
@@ -70,6 +72,12 @@ class MainActivity : ComponentActivity() {
                                 NavigationBarItem(
                                     selected = selectedTab == 1,
                                     onClick = { selectedTab = 1 },
+                                    icon = { Icon(Icons.Default.DateRange, contentDescription = "History") },
+                                    label = { Text("History") }
+                                )
+                                NavigationBarItem(
+                                    selected = selectedTab == 2,
+                                    onClick = { selectedTab = 2 },
                                     icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
                                     label = { Text("Profile") }
                                 )
@@ -90,7 +98,10 @@ class MainActivity : ComponentActivity() {
                                     bleKeyManager = bleKeyManager,
                                     authApi = networkModule.api
                                 )
-                                1 -> ProfileScreen(
+                                1 -> AttendanceHistoryScreen(
+                                    authApi = networkModule.api
+                                )
+                                2 -> ProfileScreen(
                                     securityManager = securityManager,
                                     onLogout = {
                                         securityManager.clearToken()

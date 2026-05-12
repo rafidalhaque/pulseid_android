@@ -21,6 +21,9 @@ interface AuthApi {
 
     @GET("/api/attendance/present")
     suspend fun getPresentEmployees(): List<AttendanceRecord>
+
+    @GET("/api/attendance_history")
+    suspend fun getAttendanceHistory(): AttendanceHistoryResponse
 }
 
 class NetworkModule(private val securityManager: SecurityManager) {
