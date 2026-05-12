@@ -10,49 +10,75 @@ import lab.sabily.pulseid.data.AuthApi
 import lab.sabily.pulseid.data.ProfileResponse
 import lab.sabily.pulseid.data.SecurityManager
 
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import kotlinx.coroutines.launch
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(securityManager: SecurityManager, authApi: AuthApi, onLogout: () -> Unit) {
     var profile by remember { mutableStateOf<ProfileResponse?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+    val refreshState = rememberPullToRefreshState()
+    var isRefreshing by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
+    val fetchProfile = suspend {
+        isRefreshing = true
         try {
             profile = authApi.getProfile()
+            error = null
         } catch (e: Exception) {
             error = e.message ?: "An unknown error occurred"
         } finally {
+            isRefreshing = false
             isLoading = false
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
-        if (isLoading) {
-            CircularProgressIndicator()
-        } else if (error != null) {
-            Text(text = error!!, color = MaterialTheme.colorScheme.error)
-        } else if (profile != null) {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.Top,
-                horizontalAlignment = Alignment.Start
-            ) {
-                Text(text = "Profile", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(bottom = 24.dp))
-                
-                ProfileItem(label = "Name", value = profile!!.name)
-                ProfileItem(label = "Email", value = profile!!.email)
-                ProfileItem(label = "Designation", value = profile!!.designation)
-                ProfileItem(label = "Join Date", value = profile!!.join_date ?: "N/A")
-                ProfileItem(label = "ID Number", value = profile!!.id_no)
+    LaunchedEffect(Unit) {
+        fetchProfile()
+    }
 
-                Spacer(modifier = Modifier.weight(1f))
-
-                Button(
-                    onClick = onLogout,
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer, contentColor = MaterialTheme.colorScheme.onErrorContainer)
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = {
+            scope.launch {
+                fetchProfile()
+            }
+        },
+        state = refreshState,
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
+            if (isLoading) {
+                CircularProgressIndicator()
+            } else if (error != null) {
+                Text(text = error!!, color = MaterialTheme.colorScheme.error)
+            } else if (profile != null) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Top,
+                    horizontalAlignment = Alignment.Start
                 ) {
-                    Text("Logout")
+                    Text(text = "Profile", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(bottom = 24.dp))
+                    
+                    ProfileItem(label = "Name", value = profile!!.name)
+                    ProfileItem(label = "Email", value = profile!!.email)
+                    ProfileItem(label = "Designation", value = profile!!.designation)
+                    ProfileItem(label = "Join Date", value = profile!!.join_date ?: "N/A")
+                    ProfileItem(label = "ID Number", value = profile!!.id_no)
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    Button(
+                        onClick = onLogout,
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer, contentColor = MaterialTheme.colorScheme.onErrorContainer)
+                    ) {
+                        Text("Logout")
+                    }
                 }
             }
         }
