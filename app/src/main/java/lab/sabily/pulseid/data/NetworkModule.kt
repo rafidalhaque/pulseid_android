@@ -10,11 +10,17 @@ import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.Multipart
 import retrofit2.http.POST
+import retrofit2.http.Part
+import okhttp3.MultipartBody
 
 interface AuthApi {
     @POST("/api/login")
     suspend fun login(@Body request: LoginRequest): LoginResponse
+
+    @GET("/api/profile")
+    suspend fun getProfile(): ProfileResponse
 
     @GET("/api/employee_key")
     suspend fun getEmployeeKey(): EmployeeKeyResponse
@@ -24,6 +30,10 @@ interface AuthApi {
 
     @GET("/api/attendance_history")
     suspend fun getAttendanceHistory(): AttendanceHistoryResponse
+
+    @Multipart
+    @POST("/api/import-employee")
+    suspend fun importEmployees(@Part file: MultipartBody.Part): ImportEmployeeResponse
 }
 
 class NetworkModule(private val securityManager: SecurityManager) {
