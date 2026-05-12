@@ -77,13 +77,15 @@ class MainActivity : ComponentActivity() {
                         Box(modifier = Modifier.padding(innerPadding)) {
                             when (selectedTab) {
                                 0 -> BleAdvertisingScreen(
-                                    bleKeyManager = bleKeyManager,
-                                    onLogout = { 
+                                    bleKeyManager = bleKeyManager
+                                )
+                                1 -> ProfileScreen(
+                                    securityManager = securityManager,
+                                    onLogout = {
                                         securityManager.clearToken()
                                         bleKeyManager.clearSecret()
                                     }
                                 )
-                                1 -> ProfileScreen(securityManager = securityManager)
                             }
                         }
                     }
@@ -96,7 +98,6 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun BleAdvertisingScreen(
     bleKeyManager: BleKeyManager,
-    onLogout: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -181,10 +182,6 @@ fun BleAdvertisingScreen(
             modifier = Modifier.fillMaxWidth(0.7f).padding(bottom = 32.dp)
         ) {
             Text(if (isAdvertising) "Stop Advertising" else "Start Advertising")
-        }
-
-        TextButton(onClick = onLogout) {
-            Text("Logout")
         }
     }
 }
