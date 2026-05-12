@@ -45,6 +45,7 @@ class NetworkModule(private val securityManager: SecurityManager) {
         val token = securityManager.getToken()
         
         val requestBuilder = originalRequest.newBuilder()
+        requestBuilder.header("Cache-Control", "no-cache")
         if (token != null) {
             requestBuilder.header("Authorization", "Bearer $token")
         }
