@@ -85,7 +85,7 @@ jobs:
 
           CAPTION_FILE="$(mktemp)"
           trap 'rm -f "$CAPTION_FILE"' EXIT
-          printf '%s' "$RELEASE_BODY" > "$CAPTION_FILE"
+          printf 'Release v1.0.${{ github.run_number }}\n\n%s' "$RELEASE_BODY" > "$CAPTION_FILE"
 
           curl --fail --silent --show-error \
             -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument" \
