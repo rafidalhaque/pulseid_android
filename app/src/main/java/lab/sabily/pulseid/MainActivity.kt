@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.SupervisorAccount
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -36,6 +37,7 @@ import lab.sabily.pulseid.data.BleKeyManager
 import lab.sabily.pulseid.data.NetworkModule
 import lab.sabily.pulseid.data.SecurityManager
 import lab.sabily.pulseid.ui.AttendanceHistoryScreen
+import lab.sabily.pulseid.ui.ImportEmployeeScreen
 import lab.sabily.pulseid.ui.LoginScreen
 import lab.sabily.pulseid.ui.ProfileScreen
 import lab.sabily.pulseid.ui.theme.PulseIDTheme
@@ -57,6 +59,21 @@ class MainActivity : ComponentActivity() {
             PulseIDTheme {
                 val isAuthenticated by securityManager.isAuthenticated.collectAsState()
                 var selectedTab by remember { mutableIntStateOf(0) }
+                var isAdmin by remember { mutableStateOf(false) }
+
+                LaunchedEffect(isAuthenticated) {
+                    if (isAuthenticated) {
+                        try {
+                            val profile = networkModule.api.getProfile()
+                            isAdmin = profile.is_admin == "1"
+                        } catch (e: Exception) {
+                            android.util.Log.e("MainActivity", "Failed to fetch profile for admin check", e)
+                        }
+                    } else {
+                        isAdmin = false
+                        selectedTab = 0
+                    }
+                }
 
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
@@ -75,9 +92,17 @@ class MainActivity : ComponentActivity() {
                                     icon = { Icon(Icons.Default.DateRange, contentDescription = "History") },
                                     label = { Text("History") }
                                 )
+                                if (isAdmin) {
+                                    NavigationBarItem(
+                                        selected = selectedTab == 2,
+                                        onClick = { selectedTab = 2 },
+                                        icon = { Icon(Icons.Default.SupervisorAccount, contentDescription = "Admin") },
+                                        label = { Text("Admin") }
+                                    )
+                                }
                                 NavigationBarItem(
-                                    selected = selectedTab == 2,
-                                    onClick = { selectedTab = 2 },
+                                    selected = if (isAdmin) selectedTab == 3 else selectedTab == 2,
+                                    onClick = { selectedTab = if (isAdmin) 3 else 2 },
                                     icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
                                     label = { Text("Profile") }
                                 )
@@ -101,13 +126,32 @@ class MainActivity : ComponentActivity() {
                                 1 -> AttendanceHistoryScreen(
                                     authApi = networkModule.api
                                 )
-                                2 -> ProfileScreen(
-                                    securityManager = securityManager,
-                                    onLogout = {
-                                        securityManager.clearToken()
-                                        bleKeyManager.clearSecret()
+                                2 -> {
+                                    if (isAdmin) {
+                                        ImportEmployeeScreen(authApi = networkModule.api)
+                                    } else {
+                                        ProfileScreen(
+                                            securityManager = securityManager,
+                                            authApi = networkModule.api,
+                                            onLogout = {
+                                                securityManager.clearToken()
+                                                bleKeyManager.clearSecret()
+                                            }
+                                        )
                                     }
-                                )
+                                }
+                                3 -> {
+                                    if (isAdmin) {
+                                        ProfileScreen(
+                                            securityManager = securityManager,
+                                            authApi = networkModule.api,
+                                            onLogout = {
+                                                securityManager.clearToken()
+                                                bleKeyManager.clearSecret()
+                                            }
+                                        )
+                                    }
+                                }
                             }
                         }
                     }

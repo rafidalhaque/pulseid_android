@@ -32,6 +32,12 @@ data class ProfileResponse(
 )
 
 @Serializable
+data class ImportEmployeeResponse(
+    val success: Boolean,
+    val message: String
+)
+
+@Serializable
 data class AttendanceRecord(
     val id: String,
     val employee_id: String,
