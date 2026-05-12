@@ -135,9 +135,16 @@ fun BleAdvertisingScreen(
     ) { permissions ->
         val allGranted = permissions.entries.all { it.value }
         if (allGranted) {
-            scope.launch {
-                currentUuid = bleKeyManager.getDailyUuid()
-                currentUuid?.let { bleAdvertiser.startAdvertising(it) }
+            val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+            val bluetoothAdapter = bluetoothManager.adapter
+            if (bluetoothAdapter?.isEnabled == false) {
+                val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+                bluetoothEnableLauncher.launch(enableBtIntent)
+            } else {
+                scope.launch {
+                    currentUuid = bleKeyManager.getDailyUuid()
+                    currentUuid?.let { bleAdvertiser.startAdvertising(it) }
+                }
             }
         }
     }
