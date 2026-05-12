@@ -144,8 +144,8 @@ fun MemberProfileHeader(employee: Employee) {
             Spacer(modifier = Modifier.height(16.dp))
             
             ProfileInfoRow(label = "Email", value = employee.email)
-            ProfileInfoRow(label = "ID Number", value = employee.id_number)
-            ProfileInfoRow(label = "Join Date", value = employee.join_date ?: "N/A")
+            ProfileInfoRow(label = "ID Number", value = employee.idNumber)
+            ProfileInfoRow(label = "Join Date", value = employee.joinDate ?: "N/A")
             ProfileInfoRow(label = "Position", value = employee.position)
         }
     }

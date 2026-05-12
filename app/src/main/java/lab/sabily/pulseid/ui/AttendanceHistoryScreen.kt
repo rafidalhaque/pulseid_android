@@ -240,14 +240,14 @@ fun AttendanceHistoryItem(
                 )
                 
                 // Duration
-                val durationText = if (record.exit_time == null) {
+                val durationText = if (record.exitTime == null) {
                     "Still In Office"
-                } else if (record.entry_time == null) {
+                } else if (record.entryTime == null) {
                     "N/A"
                 } else {
                     try {
-                        val entry = isoFormat.parse(record.entry_time!!)
-                        val exit = isoFormat.parse(record.exit_time!!)
+                        val entry = isoFormat.parse(record.entryTime!!)
+                        val exit = isoFormat.parse(record.exitTime!!)
                         if (entry != null && exit != null) {
                             val diff = exit.time - entry.time
                             val hours = diff / (1000 * 60 * 60)
@@ -261,13 +261,13 @@ fun AttendanceHistoryItem(
                 Text(
                     text = durationText,
                     style = MaterialTheme.typography.labelLarge,
-                    color = if (record.exit_time == null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                    color = if (record.exitTime == null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             
-            if (record.employee_name != null) {
+            if (record.employeeName != null) {
                 Text(
-                    text = record.employee_name!!,
+                    text = record.employeeName!!,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.secondary,
                     modifier = Modifier.padding(bottom = 8.dp)
@@ -277,12 +277,12 @@ fun AttendanceHistoryItem(
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                 Column {
                     Text(text = "Entry", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-                    val entryTime = if (record.entry_time == null) "--:--" else {
+                    val entryTime = if (record.entryTime == null) "--:--" else {
                         try {
-                            val d = isoFormat.parse(record.entry_time!!)
-                            d?.let { timeFormat.format(it) } ?: record.entry_time!!
+                            val d = isoFormat.parse(record.entryTime!!)
+                            d?.let { timeFormat.format(it) } ?: record.entryTime!!
                         } catch (e: Exception) {
-                            record.entry_time!!
+                            record.entryTime!!
                         }
                     }
                     Text(text = entryTime, style = MaterialTheme.typography.bodyLarge)
@@ -290,12 +290,12 @@ fun AttendanceHistoryItem(
                 
                 Column {
                     Text(text = "Exit", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-                    val exitTime = if (record.exit_time == null) "--:--" else {
+                    val exitTime = if (record.exitTime == null) "--:--" else {
                         try {
-                            val d = isoFormat.parse(record.exit_time!!)
-                            d?.let { timeFormat.format(it) } ?: record.exit_time!!
+                            val d = isoFormat.parse(record.exitTime!!)
+                            d?.let { timeFormat.format(it) } ?: record.exitTime!!
                         } catch (e: Exception) {
-                            record.exit_time!!
+                            record.exitTime!!
                         }
                     }
                     Text(text = exitTime, style = MaterialTheme.typography.bodyLarge)

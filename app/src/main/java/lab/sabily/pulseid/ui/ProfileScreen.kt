@@ -64,11 +64,11 @@ fun ProfileScreen(securityManager: SecurityManager, authApi: AuthApi, onLogout: 
                 ) {
                     Text(text = "Profile", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(bottom = 24.dp))
                     
-                    ProfileItem(label = "Name", value = profile!!.name)
-                    ProfileItem(label = "Email", value = profile!!.email)
-                    ProfileItem(label = "Designation", value = profile!!.designation)
-                    ProfileItem(label = "Join Date", value = profile!!.join_date ?: "N/A")
-                    ProfileItem(label = "ID Number", value = profile!!.id_no)
+                    ProfileItem(label = "Name", value = profile!!.employee.name)
+                    ProfileItem(label = "Email", value = profile!!.employee.email)
+                    ProfileItem(label = "Designation", value = profile!!.employee.designation)
+                    ProfileItem(label = "Join Date", value = profile!!.employee.joinDate ?: "N/A")
+                    ProfileItem(label = "ID Number", value = profile!!.employee.idNumber)
 
                     Spacer(modifier = Modifier.weight(1f))
 
