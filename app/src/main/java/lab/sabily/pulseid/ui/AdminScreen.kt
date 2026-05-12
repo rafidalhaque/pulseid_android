@@ -84,17 +84,17 @@ fun AdminScreen(authApi: AuthApi) {
                 }
 
                 Button(
-                    onClick = { currentSubScreen = AdminSubScreen.IMPORT },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Import Employee")
-                }
-                
-                Button(
                     onClick = { currentSubScreen = AdminSubScreen.LOGS },
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("Attendance Logs")
+                }
+
+                Button(
+                    onClick = { currentSubScreen = AdminSubScreen.IMPORT },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Import Employee")
                 }
             }
         }
