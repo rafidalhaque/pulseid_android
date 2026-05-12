@@ -331,12 +331,14 @@ fun CurrentlyInOfficeCard(
                     modifier = Modifier.heightIn(max = 300.dp)
                 ) {
                     items(employees) { record ->
-                        val formattedTime = try {
-                            val date = isoFormat.parse(record.entry_time)
-                            date?.let { timeFormat.format(it) } ?: record.entry_time
-                        } catch (e: Exception) {
-                            record.entry_time
-                        }
+                        val formattedTime = record.entry_time?.let { entryTime ->
+                            try {
+                                val date = isoFormat.parse(entryTime)
+                                date?.let { timeFormat.format(it) } ?: entryTime
+                            } catch (e: Exception) {
+                                entryTime
+                            }
+                        } ?: "--:--"
 
                         Row(
                             modifier = Modifier
@@ -346,7 +348,7 @@ fun CurrentlyInOfficeCard(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = record.employee_name,
+                                text = record.employee_name ?: "Unknown",
                                 style = MaterialTheme.typography.bodyLarge,
                                 modifier = Modifier.weight(1f)
                             )
