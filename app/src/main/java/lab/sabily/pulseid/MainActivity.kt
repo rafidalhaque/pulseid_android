@@ -19,7 +19,11 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.SupervisorAccount
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -162,6 +166,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BleAdvertisingScreen(
     bleKeyManager: BleKeyManager,
@@ -177,111 +182,133 @@ fun BleAdvertisingScreen(
     var presentEmployees by remember { mutableStateOf<List<AttendanceRecord>>(emptyList()) }
     var isLoadingPresent by remember { mutableStateOf(false) }
 
+    val refreshState = rememberPullToRefreshState()
+    var isRefreshing by remember { mutableStateOf(false) }
+
+    val fetchPresentEmployees = suspend {
+        isRefreshing = true
+        try {
+            presentEmployees = authApi.getPresentEmployees()
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "Failed to fetch present employees", e)
+        } finally {
+            isRefreshing = false
+            isLoadingPresent = false
+        }
+    }
+
     LaunchedEffect(Unit) {
         isLoadingPresent = true
         while (true) {
-            try {
-                presentEmployees = authApi.getPresentEmployees()
-            } catch (e: Exception) {
-                android.util.Log.e("MainActivity", "Failed to fetch present employees", e)
-            }
+            fetchPresentEmployees()
             delay(5000)
         }
     }
 
-    val bluetoothEnableLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == android.app.Activity.RESULT_OK) {
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = {
             scope.launch {
-                currentUuid = bleKeyManager.getDailyUuid()
-                currentUuid?.let { bleAdvertiser.startAdvertising(it) }
+                fetchPresentEmployees()
             }
-        }
-    }
-
-    val requiredPermissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        arrayOf(
-            Manifest.permission.BLUETOOTH_ADVERTISE,
-            Manifest.permission.BLUETOOTH_CONNECT
-        )
-    } else {
-        arrayOf(
-            Manifest.permission.BLUETOOTH,
-            Manifest.permission.BLUETOOTH_ADMIN,
-            Manifest.permission.ACCESS_FINE_LOCATION
-        )
-    }
-
-    val launcher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        val allGranted = permissions.entries.all { it.value }
-        if (allGranted) {
-            val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
-            val bluetoothAdapter = bluetoothManager.adapter
-            if (bluetoothAdapter?.isEnabled == false) {
-                val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-                bluetoothEnableLauncher.launch(enableBtIntent)
-            } else {
+        },
+        state = refreshState,
+        modifier = modifier.fillMaxSize()
+    ) {
+        val bluetoothEnableLauncher = rememberLauncherForActivityResult(
+            ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+            if (result.resultCode == android.app.Activity.RESULT_OK) {
                 scope.launch {
                     currentUuid = bleKeyManager.getDailyUuid()
                     currentUuid?.let { bleAdvertiser.startAdvertising(it) }
                 }
             }
         }
-    }
 
-    val isAdvertising = status == "Started" || status == "Starting..."
-
-    Column(
-        modifier = modifier.fillMaxSize().padding(16.dp),
-        verticalArrangement = Arrangement.Top,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Spacer(modifier = Modifier.height(48.dp))
-
-        Text(text = "Status:", style = MaterialTheme.typography.titleMedium)
-        Text(text = status, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(bottom = 24.dp))
-
-        Button(
-            onClick = {
-                if (isAdvertising) {
-                    bleAdvertiser.stopAdvertising()
-                } else {
-                    val hasPermissions = requiredPermissions.all {
-                        ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
-                    }
-                    if (hasPermissions) {
-                        val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
-                        val bluetoothAdapter = bluetoothManager.adapter
-                        if (bluetoothAdapter?.isEnabled == false) {
-                            val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-                            bluetoothEnableLauncher.launch(enableBtIntent)
-                        } else {
-                            scope.launch {
-                                currentUuid = bleKeyManager.getDailyUuid()
-                                if (currentUuid != null) {
-                                    bleAdvertiser.startAdvertising(currentUuid!!)
-                                }
-                            }
-                        }
-                    } else {
-                        launcher.launch(requiredPermissions)
-                    }
-                }
-            },
-            modifier = Modifier.fillMaxWidth(0.7f).padding(bottom = 32.dp)
-        ) {
-            Text(if (isAdvertising) "Stop" else "Start")
+        val requiredPermissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            arrayOf(
+                Manifest.permission.BLUETOOTH_ADVERTISE,
+                Manifest.permission.BLUETOOTH_CONNECT
+            )
+        } else {
+            arrayOf(
+                Manifest.permission.BLUETOOTH,
+                Manifest.permission.BLUETOOTH_ADMIN,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        val launcher = rememberLauncherForActivityResult(
+            ActivityResultContracts.RequestMultiplePermissions()
+        ) { permissions ->
+            val allGranted = permissions.entries.all { it.value }
+            if (allGranted) {
+                val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+                val bluetoothAdapter = bluetoothManager.adapter
+                if (bluetoothAdapter?.isEnabled == false) {
+                    val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+                    bluetoothEnableLauncher.launch(enableBtIntent)
+                } else {
+                    scope.launch {
+                        currentUuid = bleKeyManager.getDailyUuid()
+                        currentUuid?.let { bleAdvertiser.startAdvertising(it) }
+                    }
+                }
+            }
+        }
 
-        CurrentlyInOfficeCard(
-            employees = presentEmployees,
-            isLoading = isLoadingPresent
-        )
+        val isAdvertising = status == "Started" || status == "Starting..."
+
+        Column(
+            modifier = Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.Top,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(48.dp))
+
+            Text(text = "Status:", style = MaterialTheme.typography.titleMedium)
+            Text(text = status, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(bottom = 24.dp))
+
+            Button(
+                onClick = {
+                    if (isAdvertising) {
+                        bleAdvertiser.stopAdvertising()
+                    } else {
+                        val hasPermissions = requiredPermissions.all {
+                            ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
+                        }
+                        if (hasPermissions) {
+                            val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+                            val bluetoothAdapter = bluetoothManager.adapter
+                            if (bluetoothAdapter?.isEnabled == false) {
+                                val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+                                bluetoothEnableLauncher.launch(enableBtIntent)
+                            } else {
+                                scope.launch {
+                                    currentUuid = bleKeyManager.getDailyUuid()
+                                    if (currentUuid != null) {
+                                        bleAdvertiser.startAdvertising(currentUuid!!)
+                                    }
+                                }
+                            }
+                        } else {
+                            launcher.launch(requiredPermissions)
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(0.7f).padding(bottom = 32.dp)
+            ) {
+                Text(if (isAdvertising) "Stop" else "Start")
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            CurrentlyInOfficeCard(
+                employees = presentEmployees,
+                isLoading = isLoadingPresent
+            )
+        }
     }
 }
 

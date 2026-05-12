@@ -6,7 +6,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
@@ -20,6 +23,7 @@ import java.util.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AttendanceHistoryScreen(authApi: AuthApi, isAdmin: Boolean) {
+    val scope = rememberCoroutineScope()
     var allRecords by remember { mutableStateOf<List<AttendanceRecord>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -36,8 +40,11 @@ fun AttendanceHistoryScreen(authApi: AuthApi, isAdmin: Boolean) {
     val isoFormat = remember { SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()) }
     val timeFormat = remember { SimpleDateFormat("hh:mm a", Locale.getDefault()) }
 
-    LaunchedEffect(showAllRecords) {
-        isLoading = true
+    val refreshState = rememberPullToRefreshState()
+    var isRefreshing by remember { mutableStateOf(false) }
+
+    val fetchHistory = suspend {
+        isRefreshing = true
         try {
             val response = authApi.getAttendanceHistory(all = if (showAllRecords) true else null)
             if (response.success) {
@@ -48,8 +55,13 @@ fun AttendanceHistoryScreen(authApi: AuthApi, isAdmin: Boolean) {
         } catch (e: Exception) {
             error = e.message ?: "An unknown error occurred"
         } finally {
+            isRefreshing = false
             isLoading = false
         }
+    }
+
+    LaunchedEffect(showAllRecords) {
+        fetchHistory()
     }
 
     val filteredRecords = remember(allRecords, fromDate, toDate) {
@@ -61,69 +73,80 @@ fun AttendanceHistoryScreen(authApi: AuthApi, isAdmin: Boolean) {
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Attendance History",
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = {
+            scope.launch {
+                fetchHistory()
+            }
+        },
+        state = refreshState,
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Attendance History",
+                    style = MaterialTheme.typography.headlineMedium,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
 
-            if (isAdmin) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("All", style = MaterialTheme.typography.labelMedium)
-                    Switch(
-                        checked = showAllRecords,
-                        onCheckedChange = { showAllRecords = it },
-                        modifier = Modifier.scale(0.7f)
-                    )
+                if (isAdmin) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("All", style = MaterialTheme.typography.labelMedium)
+                        Switch(
+                            checked = showAllRecords,
+                            onCheckedChange = { showAllRecords = it },
+                            modifier = Modifier.scale(0.7f)
+                        )
+                    }
                 }
             }
-        }
 
-        // Date Range Filters
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            FilterButton(
-                label = "From",
-                date = fromDate,
-                format = displayFormat,
-                onClick = { showFromDatePicker = true },
-                onClear = { fromDate = null },
-                modifier = Modifier.weight(1f)
-            )
-            FilterButton(
-                label = "To",
-                date = toDate,
-                format = displayFormat,
-                onClick = { showToDatePicker = true },
-                onClear = { toDate = null },
-                modifier = Modifier.weight(1f)
-            )
-        }
-
-        if (isLoading) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-        } else if (error != null) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(text = error!!, color = MaterialTheme.colorScheme.error)
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(bottom = 16.dp)
+            // Date Range Filters
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(filteredRecords) { record ->
-                    AttendanceHistoryItem(record, isoFormat, timeFormat, displayFormat, dateFormat)
+                FilterButton(
+                    label = "From",
+                    date = fromDate,
+                    format = displayFormat,
+                    onClick = { showFromDatePicker = true },
+                    onClear = { fromDate = null },
+                    modifier = Modifier.weight(1f)
+                )
+                FilterButton(
+                    label = "To",
+                    date = toDate,
+                    format = displayFormat,
+                    onClick = { showToDatePicker = true },
+                    onClear = { toDate = null },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            if (isLoading) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            } else if (error != null) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(text = error!!, color = MaterialTheme.colorScheme.error)
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(bottom = 16.dp)
+                ) {
+                    items(filteredRecords) { record ->
+                        AttendanceHistoryItem(record, isoFormat, timeFormat, displayFormat, dateFormat)
+                    }
                 }
             }
         }
