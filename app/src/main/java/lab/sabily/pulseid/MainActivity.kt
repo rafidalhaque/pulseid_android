@@ -65,7 +65,7 @@ class MainActivity : ComponentActivity() {
                     if (isAuthenticated) {
                         try {
                             val profile = networkModule.api.getProfile()
-                            isAdmin = profile.is_admin == "1"
+                            isAdmin = profile.is_admin
                         } catch (e: Exception) {
                             android.util.Log.e("MainActivity", "Failed to fetch profile for admin check", e)
                         }
