@@ -29,7 +29,7 @@ interface AuthApi {
     @GET("/api/attendance/present")
     suspend fun getPresentEmployees(): List<AttendanceRecord>
 
-    @GET("/api/attendance_history")
+    @GET("/api/attendance/history")
     suspend fun getAttendanceHistory(@Query("all") all: Boolean? = null): AttendanceHistoryResponse
 
     @Multipart

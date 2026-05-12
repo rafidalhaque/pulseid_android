@@ -36,8 +36,8 @@ import lab.sabily.pulseid.data.AuthApi
 import lab.sabily.pulseid.data.BleKeyManager
 import lab.sabily.pulseid.data.NetworkModule
 import lab.sabily.pulseid.data.SecurityManager
+import lab.sabily.pulseid.ui.AdminScreen
 import lab.sabily.pulseid.ui.AttendanceHistoryScreen
-import lab.sabily.pulseid.ui.ImportEmployeeScreen
 import lab.sabily.pulseid.ui.LoginScreen
 import lab.sabily.pulseid.ui.ProfileScreen
 import lab.sabily.pulseid.ui.theme.PulseIDTheme
@@ -129,7 +129,7 @@ class MainActivity : ComponentActivity() {
                                 )
                                 2 -> {
                                     if (isAdmin) {
-                                        ImportEmployeeScreen(authApi = networkModule.api)
+                                        AdminScreen(authApi = networkModule.api)
                                     } else {
                                         ProfileScreen(
                                             securityManager = securityManager,

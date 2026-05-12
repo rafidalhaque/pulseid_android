@@ -36,7 +36,8 @@ fun LoginScreen(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Employee Login", style = MaterialTheme.typography.headlineMedium)
+        Text("PulseID", style = MaterialTheme.typography.headlineMedium)
+        Text("Login with Your Credentials", style = MaterialTheme.typography.bodyMedium)
         Spacer(modifier = Modifier.height(32.dp))
 
         OutlinedTextField(
