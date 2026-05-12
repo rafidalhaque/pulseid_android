@@ -46,7 +46,7 @@ fun ImportEmployeeScreen(authApi: AuthApi) {
     var isUploading by remember { mutableStateOf(false) }
 
     val filePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
+        contract = ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
         selectedUri = uri
         uri?.let {
@@ -67,7 +67,18 @@ fun ImportEmployeeScreen(authApi: AuthApi) {
         )
 
         Button(
-            onClick = { filePickerLauncher.launch("text/csv") },
+            onClick = { 
+                filePickerLauncher.launch(
+                    arrayOf(
+                        "text/csv", 
+                        "text/comma-separated-values", 
+                        "application/csv", 
+                        "application/vnd.ms-excel",
+                        "text/plain",
+                        "*/*"
+                    )
+                ) 
+            },
             modifier = Modifier.fillMaxWidth()
         ) {
             Icon(Icons.Default.FileUpload, contentDescription = null)
