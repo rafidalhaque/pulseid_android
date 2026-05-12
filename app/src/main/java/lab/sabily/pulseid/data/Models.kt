@@ -29,3 +29,15 @@ data class ProfileResponse(
     val designation: String,
     val position: String
 )
+
+@Serializable
+data class AttendanceRecord(
+    val id: String,
+    val employee_id: String,
+    val employee_name: String,
+    val date: String,
+    val entry_time: String,
+    val exit_time: String?,
+    val entry_comment: String?,
+    val exit_comment: String?
+)
