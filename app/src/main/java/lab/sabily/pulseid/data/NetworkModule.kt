@@ -45,7 +45,7 @@ interface AuthApi {
     suspend fun getMemberDetail(@Query("uuid") uuid: String): MemberDetailResponse
 
     @POST("/api/employee/add")
-    suspend fun addEmployee(@Body request: AddEmployeeRequest): GenericResponse
+    suspend fun addEmployee(@Body request: AddEmployeeRequest): AddEmployeeResponse
 
     @retrofit2.http.PATCH("/api/employee/edit")
     suspend fun editEmployee(@Body request: EditEmployeeRequest): GenericResponse
