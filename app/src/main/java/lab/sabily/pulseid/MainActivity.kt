@@ -343,8 +343,13 @@ fun CurrentlyInOfficeCard(
     isLoading: Boolean
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val timeFormat = remember { SimpleDateFormat("hh:mm a", Locale.getDefault()) }
-    val isoFormat = remember { SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()) }
+    val dhakaZone = remember { TimeZone.getTimeZone("Asia/Dhaka") }
+    val timeFormat = remember { 
+        SimpleDateFormat("hh:mm a", Locale.getDefault()).apply { timeZone = dhakaZone }
+    }
+    val isoFormat = remember { 
+        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).apply { timeZone = TimeZone.getTimeZone("UTC") }
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -433,8 +438,13 @@ fun LeftTodayCard(
     isLoading: Boolean
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val timeFormat = remember { SimpleDateFormat("hh:mm a", Locale.getDefault()) }
-    val isoFormat = remember { SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()) }
+    val dhakaZone = remember { TimeZone.getTimeZone("Asia/Dhaka") }
+    val timeFormat = remember { 
+        SimpleDateFormat("hh:mm a", Locale.getDefault()).apply { timeZone = dhakaZone }
+    }
+    val isoFormat = remember { 
+        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).apply { timeZone = TimeZone.getTimeZone("UTC") }
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),

@@ -35,10 +35,15 @@ fun AttendanceHistoryScreen(authApi: AuthApi, isAdmin: Boolean) {
     var showFromDatePicker by remember { mutableStateOf(false) }
     var showToDatePicker by remember { mutableStateOf(false) }
 
+    val dhakaZone = remember { TimeZone.getTimeZone("Asia/Dhaka") }
     val dateFormat = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
     val displayFormat = remember { SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()) }
-    val isoFormat = remember { SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()) }
-    val timeFormat = remember { SimpleDateFormat("hh:mm a", Locale.getDefault()) }
+    val isoFormat = remember { 
+        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).apply { timeZone = TimeZone.getTimeZone("UTC") }
+    }
+    val timeFormat = remember { 
+        SimpleDateFormat("hh:mm a", Locale.getDefault()).apply { timeZone = dhakaZone }
+    }
 
     val refreshState = rememberPullToRefreshState()
     var isRefreshing by remember { mutableStateOf(false) }
