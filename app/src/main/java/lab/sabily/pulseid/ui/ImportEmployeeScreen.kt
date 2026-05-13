@@ -124,7 +124,8 @@ fun ImportEmployeeScreen(authApi: AuthApi) {
                             isUploading = true
                             try {
                                 val result = uploadCSV(uri, context, authApi)
-                                Toast.makeText(context, result.message, Toast.LENGTH_LONG).show()
+                                val message = result.message ?: if (result.success) "Employees imported successfully" else "Import failed"
+                                Toast.makeText(context, message, Toast.LENGTH_LONG).show()
                                 if (result.success) {
                                     selectedUri = null
                                     previewEmployees = emptyList()

@@ -29,7 +29,7 @@ data class ProfileResponse(
 @Serializable
 data class ImportEmployeeResponse(
     val success: Boolean,
-    val message: String
+    val message: String? = null
 )
 
 @Serializable

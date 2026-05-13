@@ -9,6 +9,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -65,6 +66,10 @@ class MainActivity : ComponentActivity() {
                 var selectedTab by remember { mutableIntStateOf(0) }
                 var isAdmin by remember { mutableStateOf(false) }
 
+                BackHandler(enabled = isAuthenticated && selectedTab != 0) {
+                    selectedTab = 0
+                }
+
                 LaunchedEffect(isAuthenticated) {
                     if (isAuthenticated) {
                         try {
@@ -88,27 +93,27 @@ class MainActivity : ComponentActivity() {
                                     selected = selectedTab == 0,
                                     onClick = { selectedTab = 0 },
                                     icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
-                                    label = { Text("Home") }
+                                    label = { Text("Home", style = MaterialTheme.typography.labelLarge) }
                                 )
                                 NavigationBarItem(
                                     selected = selectedTab == 1,
                                     onClick = { selectedTab = 1 },
                                     icon = { Icon(Icons.Default.DateRange, contentDescription = "History") },
-                                    label = { Text("History") }
+                                    label = { Text("History", style = MaterialTheme.typography.labelLarge) }
                                 )
                                 if (isAdmin) {
                                     NavigationBarItem(
                                         selected = selectedTab == 2,
                                         onClick = { selectedTab = 2 },
                                         icon = { Icon(Icons.Default.SupervisorAccount, contentDescription = "Admin") },
-                                        label = { Text("Admin") }
+                                        label = { Text("Admin", style = MaterialTheme.typography.labelLarge) }
                                     )
                                 }
                                 NavigationBarItem(
                                     selected = if (isAdmin) selectedTab == 3 else selectedTab == 2,
                                     onClick = { selectedTab = if (isAdmin) 3 else 2 },
                                     icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
-                                    label = { Text("Profile") }
+                                    label = { Text("Profile", style = MaterialTheme.typography.labelLarge) }
                                 )
                             }
                         }
