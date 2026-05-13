@@ -92,3 +92,34 @@ data class MemberDetailResponse(
     val employee: Employee,
     val history: List<AttendanceRecord>
 )
+
+@Serializable
+data class AddEmployeeRequest(
+    val name: String,
+    val email: String,
+    @SerialName("id_number") val idNumber: String,
+    @SerialName("join_date") val joinDate: String,
+    val designation: String,
+    val password: String,
+    val position: Int,
+    @SerialName("is_admin") val isAdmin: Boolean
+)
+
+@Serializable
+data class EditEmployeeRequest(
+    val uuid: String,
+    val name: String? = null,
+    val email: String? = null,
+    @SerialName("id_number") val idNumber: String? = null,
+    @SerialName("join_date") val joinDate: String? = null,
+    val designation: String? = null,
+    val password: String? = null,
+    val position: Int? = null,
+    @SerialName("is_admin") val isAdmin: Boolean? = null
+)
+
+@Serializable
+data class GenericResponse(
+    val success: Boolean,
+    val message: String? = null
+)
