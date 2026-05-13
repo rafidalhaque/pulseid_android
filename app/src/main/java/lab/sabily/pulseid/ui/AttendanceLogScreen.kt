@@ -30,7 +30,7 @@ fun AttendanceLogScreen(authApi: AuthApi) {
 
     val dhakaZone = remember { TimeZone.getTimeZone("Asia/Dhaka") }
     val isoFormat = remember { 
-        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).apply { timeZone = TimeZone.getTimeZone("UTC") }
+        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).apply { timeZone = dhakaZone }
     }
     val displayFormat = remember { 
         SimpleDateFormat("MMM dd, hh:mm a", Locale.getDefault()).apply { timeZone = dhakaZone }
