@@ -41,7 +41,8 @@ data class AttendanceRecord(
     @SerialName("entry_time") val entryTime: String?,
     @SerialName("exit_time") val exitTime: String?,
     @SerialName("entry_comment") val entryComment: String?,
-    @SerialName("exit_comment") val exitComment: String?
+    @SerialName("exit_comment") val exitComment: String?,
+    @SerialName("is_present") val isPresent: Boolean = false
 )
 
 @Serializable
