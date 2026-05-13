@@ -123,3 +123,10 @@ data class GenericResponse(
     val success: Boolean,
     val message: String? = null
 )
+
+@Serializable
+data class AddEmployeeResponse(
+    val success: Boolean,
+    val message: String? = null,
+    val id: String? = null
+)

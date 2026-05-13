@@ -5,10 +5,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import lab.sabily.pulseid.data.AddEmployeeRequest
@@ -38,8 +41,11 @@ fun AddEmployeeScreen(
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val dateFormatter = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
+    val clipboardManager = LocalClipboardManager.current
     
     var showDatePicker by remember { mutableStateOf(false) }
+    var showSuccessDialog by remember { mutableStateOf(false) }
+    var createdEmployeeId by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
@@ -154,7 +160,8 @@ fun AddEmployeeScreen(
                             )
                             val response = authApi.addEmployee(request)
                             if (response.success) {
-                                onSuccess()
+                                createdEmployeeId = response.id ?: ""
+                                showSuccessDialog = true
                             } else {
                                 errorMessage = response.message ?: "Failed to add employee"
                             }
@@ -193,5 +200,44 @@ fun AddEmployeeScreen(
         ) {
             DatePicker(state = datePickerState)
         }
+    }
+
+    if (showSuccessDialog) {
+        AlertDialog(
+            onDismissRequest = { 
+                showSuccessDialog = false
+                onSuccess()
+            },
+            title = { Text("Employee Added Successfully") },
+            text = {
+                Column {
+                    Text("Employee ID:")
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = createdEmployeeId,
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.weight(1f)
+                        )
+                        IconButton(onClick = {
+                            clipboardManager.setText(AnnotatedString(createdEmployeeId))
+                        }) {
+                            Icon(Icons.Default.ContentCopy, contentDescription = "Copy ID")
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showSuccessDialog = false
+                    onSuccess()
+                }) {
+                    Text("OK")
+                }
+            }
+        )
     }
 }

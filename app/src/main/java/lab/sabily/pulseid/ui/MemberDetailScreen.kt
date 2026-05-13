@@ -46,7 +46,7 @@ fun MemberDetailScreen(
                 employee = response.employee
                 history = response.history.sortedByDescending { it.date }
             } else {
-                error = "Failed to fetch member details"
+                error = "Failed to fetch employee details"
             }
         } catch (e: Exception) {
             error = e.message ?: "An unknown error occurred"
@@ -157,6 +157,7 @@ fun MemberProfileHeader(employee: Employee) {
             
             Spacer(modifier = Modifier.height(16.dp))
             
+            ProfileInfoRow(label = "Employee ID", value = employee.id)
             ProfileInfoRow(label = "Email", value = employee.email)
             ProfileInfoRow(label = "ID Number", value = employee.idNumber)
             ProfileInfoRow(label = "Join Date", value = employee.joinDate ?: "N/A")

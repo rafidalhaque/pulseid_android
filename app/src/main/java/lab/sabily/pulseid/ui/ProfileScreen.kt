@@ -64,6 +64,7 @@ fun ProfileScreen(securityManager: SecurityManager, authApi: AuthApi, onLogout: 
                 ) {
                     Text(text = "Profile", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(bottom = 24.dp))
                     
+                    ProfileItem(label = "Employee ID", value = profile!!.employee.id)
                     ProfileItem(label = "Name", value = profile!!.employee.name)
                     ProfileItem(label = "Email", value = profile!!.employee.email)
                     ProfileItem(label = "Designation", value = profile!!.employee.designation)

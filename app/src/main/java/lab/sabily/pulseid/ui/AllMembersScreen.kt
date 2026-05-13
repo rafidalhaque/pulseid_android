@@ -20,26 +20,27 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AllMembersScreen(
+fun AllEmployeesScreen(
     authApi: AuthApi,
-    onMemberClick: (String) -> Unit,
+    onEmployeeClick: (String) -> Unit,
     onAddClick: () -> Unit
 ) {
-    var members by remember { mutableStateOf<List<Employee>>(emptyList()) }
+    var employees by remember { mutableStateOf<List<Employee>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val refreshState = rememberPullToRefreshState()
     var isRefreshing by remember { mutableStateOf(false) }
 
-    val fetchMembers = suspend {
+    val fetchEmployees = suspend {
         isRefreshing = true
         try {
             val response = authApi.getAllMembers()
             if (response.success) {
-                members = response.employee
+                // Sort by position (which is a String in Employee model, converting to Int for sorting)
+                employees = response.employee.sortedBy { it.position.toIntOrNull() ?: Int.MAX_VALUE }
             } else {
-                error = "Failed to fetch members"
+                error = "Failed to fetch employees"
             }
         } catch (e: Exception) {
             error = e.message ?: "An unknown error occurred"
@@ -50,7 +51,7 @@ fun AllMembersScreen(
     }
 
     LaunchedEffect(Unit) {
-        fetchMembers()
+        fetchEmployees()
     }
 
     Scaffold(
@@ -62,7 +63,7 @@ fun AllMembersScreen(
     ) { innerPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(16.dp)) {
             Text(
-                text = "All Members",
+                text = "All Employees",
                 style = MaterialTheme.typography.headlineMedium,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
@@ -71,7 +72,7 @@ fun AllMembersScreen(
                 isRefreshing = isRefreshing,
                 onRefresh = {
                     scope.launch {
-                        fetchMembers()
+                        fetchEmployees()
                     }
                 },
                 state = refreshState,
@@ -91,8 +92,8 @@ fun AllMembersScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                         contentPadding = PaddingValues(bottom = 16.dp)
                     ) {
-                        items(members) { employee ->
-                            MemberCard(employee = employee, onClick = { onMemberClick(employee.id) })
+                        items(employees) { employee ->
+                            EmployeeCard(employee = employee, onClick = { onEmployeeClick(employee.id) })
                         }
                     }
                 }
@@ -102,7 +103,7 @@ fun AllMembersScreen(
 }
 
 @Composable
-fun MemberCard(employee: Employee, onClick: () -> Unit) {
+fun EmployeeCard(employee: Employee, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()

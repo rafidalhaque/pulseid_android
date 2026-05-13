@@ -39,7 +39,7 @@ fun AdminScreen(authApi: AuthApi) {
                 AttendanceLogScreen(authApi = authApi)
             }
         }
-        AdminSubScreen.ALL_MEMBERS -> {
+        AdminSubScreen.ALL_EMPLOYEES -> {
             Column(modifier = Modifier.fillMaxSize()) {
                 IconButton(
                     onClick = { currentSubScreen = null },
@@ -47,11 +47,11 @@ fun AdminScreen(authApi: AuthApi) {
                 ) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                 }
-                AllMembersScreen(
+                AllEmployeesScreen(
                     authApi = authApi,
-                    onMemberClick = { id ->
+                    onEmployeeClick = { id ->
                         selectedEmployeeId = id
-                        currentSubScreen = AdminSubScreen.MEMBER_DETAIL
+                        currentSubScreen = AdminSubScreen.EMPLOYEE_DETAIL
                     },
                     onAddClick = {
                         currentSubScreen = AdminSubScreen.ADD_EMPLOYEE
@@ -59,10 +59,10 @@ fun AdminScreen(authApi: AuthApi) {
                 )
             }
         }
-        AdminSubScreen.MEMBER_DETAIL -> {
+        AdminSubScreen.EMPLOYEE_DETAIL -> {
             Column(modifier = Modifier.fillMaxSize()) {
                 IconButton(
-                    onClick = { currentSubScreen = AdminSubScreen.ALL_MEMBERS },
+                    onClick = { currentSubScreen = AdminSubScreen.ALL_EMPLOYEES },
                     modifier = Modifier.padding(8.dp)
                 ) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -83,9 +83,9 @@ fun AdminScreen(authApi: AuthApi) {
             AddEmployeeScreen(
                 authApi = authApi,
                 onSuccess = {
-                    currentSubScreen = AdminSubScreen.ALL_MEMBERS
+                    currentSubScreen = AdminSubScreen.ALL_EMPLOYEES
                 },
-                onBack = { currentSubScreen = AdminSubScreen.ALL_MEMBERS }
+                onBack = { currentSubScreen = AdminSubScreen.ALL_EMPLOYEES }
             )
         }
         AdminSubScreen.EDIT_EMPLOYEE -> {
@@ -94,9 +94,9 @@ fun AdminScreen(authApi: AuthApi) {
                     authApi = authApi,
                     employee = emp,
                     onSuccess = {
-                        currentSubScreen = AdminSubScreen.ALL_MEMBERS
+                        currentSubScreen = AdminSubScreen.ALL_EMPLOYEES
                     },
-                    onBack = { currentSubScreen = AdminSubScreen.MEMBER_DETAIL }
+                    onBack = { currentSubScreen = AdminSubScreen.EMPLOYEE_DETAIL }
                 )
             }
         }
@@ -109,10 +109,10 @@ fun AdminScreen(authApi: AuthApi) {
                 verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically)
             ) {
                 Button(
-                    onClick = { currentSubScreen = AdminSubScreen.ALL_MEMBERS },
+                    onClick = { currentSubScreen = AdminSubScreen.ALL_EMPLOYEES },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("All Members")
+                    Text("All Employees")
                 }
 
                 Button(
@@ -134,5 +134,5 @@ fun AdminScreen(authApi: AuthApi) {
 }
 
 enum class AdminSubScreen {
-    IMPORT, LOGS, ALL_MEMBERS, MEMBER_DETAIL, ADD_EMPLOYEE, EDIT_EMPLOYEE
+    IMPORT, LOGS, ALL_EMPLOYEES, EMPLOYEE_DETAIL, ADD_EMPLOYEE, EDIT_EMPLOYEE
 }
