@@ -47,6 +47,8 @@ import lab.sabily.pulseid.ui.LoginScreen
 import lab.sabily.pulseid.ui.ProfileScreen
 import lab.sabily.pulseid.ui.theme.PulseIDTheme
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.*
@@ -185,27 +187,38 @@ fun BleAdvertisingScreen(
     val scope = rememberCoroutineScope()
 
     var presentEmployees by remember { mutableStateOf<List<AttendanceRecord>>(emptyList()) }
-    var isLoadingPresent by remember { mutableStateOf(false) }
+    var leftEmployees by remember { mutableStateOf<List<AttendanceRecord>>(emptyList()) }
+    var isLoadingData by remember { mutableStateOf(false) }
 
     val refreshState = rememberPullToRefreshState()
     var isRefreshing by remember { mutableStateOf(false) }
 
-    val fetchPresentEmployees = suspend {
+    val fetchAttendanceData = suspend {
         isRefreshing = true
         try {
-            presentEmployees = authApi.getPresentEmployees()
+            coroutineScope {
+                val presentDeferred = async { authApi.getPresentEmployees() }
+                val leftDeferred = async { authApi.getLeftEmployees() }
+                
+                try {
+                    presentEmployees = presentDeferred.await()
+                    leftEmployees = leftDeferred.await()
+                } catch (e: Exception) {
+                    android.util.Log.e("MainActivity", "Failed to fetch attendance data", e)
+                }
+            }
         } catch (e: Exception) {
-            android.util.Log.e("MainActivity", "Failed to fetch present employees", e)
+            android.util.Log.e("MainActivity", "Failed to fetch attendance data", e)
         } finally {
             isRefreshing = false
-            isLoadingPresent = false
+            isLoadingData = false
         }
     }
 
     LaunchedEffect(Unit) {
-        isLoadingPresent = true
+        isLoadingData = true
         while (true) {
-            fetchPresentEmployees()
+            fetchAttendanceData()
             delay(5000)
         }
     }
@@ -214,7 +227,7 @@ fun BleAdvertisingScreen(
         isRefreshing = isRefreshing,
         onRefresh = {
             scope.launch {
-                fetchPresentEmployees()
+                fetchAttendanceData()
             }
         },
         state = refreshState,
@@ -311,7 +324,14 @@ fun BleAdvertisingScreen(
 
             CurrentlyInOfficeCard(
                 employees = presentEmployees,
-                isLoading = isLoadingPresent
+                isLoading = isLoadingData
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            LeftTodayCard(
+                employees = leftEmployees,
+                isLoading = isLoadingData
             )
         }
     }
@@ -366,7 +386,7 @@ fun CurrentlyInOfficeCard(
                         val formattedTime = record.entryTime?.let { entryTime ->
                             try {
                                 val date = isoFormat.parse(entryTime)
-                                date?.let { timeFormat.format(it) } ?: entryTime
+                                date?.let { "since ${timeFormat.format(it)}" } ?: entryTime
                             } catch (e: Exception) {
                                 entryTime
                             }
@@ -400,6 +420,96 @@ fun CurrentlyInOfficeCard(
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = "No employees currently in office",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
+            }
+        }
+    }
+}
+@Composable
+fun LeftTodayCard(
+    employees: List<AttendanceRecord>,
+    isLoading: Boolean
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val timeFormat = remember { SimpleDateFormat("hh:mm a", Locale.getDefault()) }
+    val isoFormat = remember { SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()) }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "Left Today",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = if (isLoading) "Loading..." else "${employees.size} employees left",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+                IconButton(onClick = { expanded = !expanded }) {
+                    Icon(
+                        imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = if (expanded) "Collapse" else "Expand"
+                    )
+                }
+            }
+
+            if (expanded && employees.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(16.dp))
+                LazyColumn(
+                    modifier = Modifier.heightIn(max = 300.dp)
+                ) {
+                    items(employees) { record ->
+                        val formattedTime = record.exitTime?.let { exitTime ->
+                            try {
+                                val date = isoFormat.parse(exitTime)
+                                date?.let { "left at ${timeFormat.format(it)}" } ?: exitTime
+                            } catch (e: Exception) {
+                                exitTime
+                            }
+                        } ?: "--:--"
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = record.employeeName ?: "Unknown",
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text(
+                                text = formattedTime,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        HorizontalDivider(
+                            thickness = 0.5.dp,
+                            color = MaterialTheme.colorScheme.outlineVariant
+                        )
+                    }
+                }
+            } else if (expanded && !isLoading) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "No employees left yet today",
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.align(Alignment.CenterHorizontally)
                 )
