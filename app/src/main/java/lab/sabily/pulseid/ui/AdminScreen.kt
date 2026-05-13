@@ -1,5 +1,6 @@
 package lab.sabily.pulseid.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -15,6 +16,18 @@ fun AdminScreen(authApi: AuthApi) {
     var currentSubScreen by remember { mutableStateOf<AdminSubScreen?>(null) }
     var selectedEmployeeId by remember { mutableStateOf<String?>(null) }
     var employeeToEdit by remember { mutableStateOf<lab.sabily.pulseid.data.Employee?>(null) }
+
+    BackHandler(enabled = currentSubScreen != null) {
+        currentSubScreen = when (currentSubScreen) {
+            AdminSubScreen.IMPORT -> null
+            AdminSubScreen.LOGS -> null
+            AdminSubScreen.ALL_EMPLOYEES -> null
+            AdminSubScreen.EMPLOYEE_DETAIL -> AdminSubScreen.ALL_EMPLOYEES
+            AdminSubScreen.ADD_EMPLOYEE -> AdminSubScreen.ALL_EMPLOYEES
+            AdminSubScreen.EDIT_EMPLOYEE -> AdminSubScreen.EMPLOYEE_DETAIL
+            null -> null
+        }
+    }
 
     when (currentSubScreen) {
         AdminSubScreen.IMPORT -> {

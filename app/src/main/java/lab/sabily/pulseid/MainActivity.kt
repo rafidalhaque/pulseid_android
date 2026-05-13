@@ -322,17 +322,19 @@ fun BleAdvertisingScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            CurrentlyInOfficeCard(
-                employees = presentEmployees,
-                isLoading = isLoadingData
-            )
+            if (isAdmin) {
+                CurrentlyInOfficeCard(
+                    employees = presentEmployees,
+                    isLoading = isLoadingData
+                )
 
-            Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-            LeftTodayCard(
-                employees = leftEmployees,
-                isLoading = isLoadingData
-            )
+                LeftTodayCard(
+                    employees = leftEmployees,
+                    isLoading = isLoadingData
+                )
+            }
         }
     }
 }

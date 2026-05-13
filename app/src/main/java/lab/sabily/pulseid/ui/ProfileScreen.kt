@@ -64,7 +64,22 @@ fun ProfileScreen(securityManager: SecurityManager, authApi: AuthApi, onLogout: 
                 ) {
                     Text(text = "Profile", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(bottom = 24.dp))
                     
-                    ProfileItem(label = "Employee ID", value = profile!!.employee.id)
+                    Column(modifier = Modifier.padding(bottom = 16.dp)) {
+                        Text(text = "ID", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(text = profile!!.employee.id, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                            IconButton(onClick = {
+                                clipboardManager.setText(AnnotatedString(profile!!.employee.id))
+                            }) {
+                                Icon(Icons.Default.ContentCopy, contentDescription = "Copy ID", modifier = Modifier.size(20.dp))
+                            }
+                        }
+                    }
+
                     ProfileItem(label = "Name", value = profile!!.employee.name)
                     ProfileItem(label = "Email", value = profile!!.employee.email)
                     ProfileItem(label = "Designation", value = profile!!.employee.designation)

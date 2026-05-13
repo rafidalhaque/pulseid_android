@@ -65,6 +65,7 @@ fun AddEmployeeScreen(
                 .padding(innerPadding)
                 .padding(16.dp)
                 .fillMaxSize()
+                .imePadding()
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
