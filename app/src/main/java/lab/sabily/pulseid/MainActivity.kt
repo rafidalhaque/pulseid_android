@@ -348,7 +348,7 @@ fun CurrentlyInOfficeCard(
         SimpleDateFormat("hh:mm a", Locale.getDefault()).apply { timeZone = dhakaZone }
     }
     val isoFormat = remember { 
-        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).apply { timeZone = TimeZone.getTimeZone("UTC") }
+        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).apply { timeZone = dhakaZone }
     }
 
     Card(
@@ -443,7 +443,7 @@ fun LeftTodayCard(
         SimpleDateFormat("hh:mm a", Locale.getDefault()).apply { timeZone = dhakaZone }
     }
     val isoFormat = remember { 
-        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).apply { timeZone = TimeZone.getTimeZone("UTC") }
+        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).apply { timeZone = dhakaZone }
     }
 
     Card(

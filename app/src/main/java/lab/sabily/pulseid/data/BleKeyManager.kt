@@ -33,7 +33,9 @@ class BleKeyManager(
         }
 
         val secret = masterSecret ?: return null
-        val date = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
+        val date = SimpleDateFormat("yyyy-MM-dd", Locale.US).apply { 
+            timeZone = TimeZone.getTimeZone("Asia/Dhaka")
+        }.format(Date())
         val input = employeeUuid + date
         
         val uuid = generateHmacUuid(secret, input)
