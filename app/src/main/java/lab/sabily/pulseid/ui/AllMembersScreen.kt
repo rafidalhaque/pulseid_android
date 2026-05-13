@@ -4,6 +4,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -20,7 +22,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun AllMembersScreen(
     authApi: AuthApi,
-    onMemberClick: (String) -> Unit
+    onMemberClick: (String) -> Unit,
+    onAddClick: () -> Unit
 ) {
     var members by remember { mutableStateOf<List<Employee>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
@@ -50,39 +53,47 @@ fun AllMembersScreen(
         fetchMembers()
     }
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text(
-            text = "All Members",
-            style = MaterialTheme.typography.headlineMedium,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
+    Scaffold(
+        floatingActionButton = {
+            FloatingActionButton(onClick = onAddClick) {
+                Icon(Icons.Default.Add, contentDescription = "Add Employee")
+            }
+        }
+    ) { innerPadding ->
+        Column(modifier = Modifier.fillMaxSize().padding(innerPadding).padding(16.dp)) {
+            Text(
+                text = "All Members",
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
 
-        PullToRefreshBox(
-            isRefreshing = isRefreshing,
-            onRefresh = {
-                scope.launch {
-                    fetchMembers()
-                }
-            },
-            state = refreshState,
-            modifier = Modifier.fillMaxSize()
-        ) {
-            if (isLoading && !isRefreshing) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-            } else if (error != null) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(text = error!!, color = MaterialTheme.colorScheme.error)
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(bottom = 16.dp)
-                ) {
-                    items(members) { employee ->
-                        MemberCard(employee = employee, onClick = { onMemberClick(employee.id) })
+            PullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = {
+                    scope.launch {
+                        fetchMembers()
+                    }
+                },
+                state = refreshState,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                if (isLoading && !isRefreshing) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                } else if (error != null) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(text = error!!, color = MaterialTheme.colorScheme.error)
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(bottom = 16.dp)
+                    ) {
+                        items(members) { employee ->
+                            MemberCard(employee = employee, onClick = { onMemberClick(employee.id) })
+                        }
                     }
                 }
             }

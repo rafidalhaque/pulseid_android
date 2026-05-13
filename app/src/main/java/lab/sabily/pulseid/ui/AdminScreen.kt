@@ -14,6 +14,7 @@ import lab.sabily.pulseid.data.AuthApi
 fun AdminScreen(authApi: AuthApi) {
     var currentSubScreen by remember { mutableStateOf<AdminSubScreen?>(null) }
     var selectedEmployeeId by remember { mutableStateOf<String?>(null) }
+    var employeeToEdit by remember { mutableStateOf<lab.sabily.pulseid.data.Employee?>(null) }
 
     when (currentSubScreen) {
         AdminSubScreen.IMPORT -> {
@@ -51,6 +52,9 @@ fun AdminScreen(authApi: AuthApi) {
                     onMemberClick = { id ->
                         selectedEmployeeId = id
                         currentSubScreen = AdminSubScreen.MEMBER_DETAIL
+                    },
+                    onAddClick = {
+                        currentSubScreen = AdminSubScreen.ADD_EMPLOYEE
                     }
                 )
             }
@@ -64,8 +68,36 @@ fun AdminScreen(authApi: AuthApi) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                 }
                 selectedEmployeeId?.let {
-                    MemberDetailScreen(authApi = authApi, employeeId = it)
+                    MemberDetailScreen(
+                        authApi = authApi,
+                        employeeId = it,
+                        onEditClick = { emp ->
+                            employeeToEdit = emp
+                            currentSubScreen = AdminSubScreen.EDIT_EMPLOYEE
+                        }
+                    )
                 }
+            }
+        }
+        AdminSubScreen.ADD_EMPLOYEE -> {
+            AddEmployeeScreen(
+                authApi = authApi,
+                onSuccess = {
+                    currentSubScreen = AdminSubScreen.ALL_MEMBERS
+                },
+                onBack = { currentSubScreen = AdminSubScreen.ALL_MEMBERS }
+            )
+        }
+        AdminSubScreen.EDIT_EMPLOYEE -> {
+            employeeToEdit?.let { emp ->
+                EditEmployeeScreen(
+                    authApi = authApi,
+                    employee = emp,
+                    onSuccess = {
+                        currentSubScreen = AdminSubScreen.ALL_MEMBERS
+                    },
+                    onBack = { currentSubScreen = AdminSubScreen.MEMBER_DETAIL }
+                )
             }
         }
         null -> {
@@ -102,5 +134,5 @@ fun AdminScreen(authApi: AuthApi) {
 }
 
 enum class AdminSubScreen {
-    IMPORT, LOGS, ALL_MEMBERS, MEMBER_DETAIL
+    IMPORT, LOGS, ALL_MEMBERS, MEMBER_DETAIL, ADD_EMPLOYEE, EDIT_EMPLOYEE
 }

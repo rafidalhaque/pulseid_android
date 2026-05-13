@@ -22,7 +22,8 @@ import java.util.*
 @Composable
 fun MemberDetailScreen(
     authApi: AuthApi,
-    employeeId: String
+    employeeId: String,
+    onEditClick: (Employee) -> Unit
 ) {
     var employee by remember { mutableStateOf<Employee?>(null) }
     var history by remember { mutableStateOf<List<AttendanceRecord>>(emptyList()) }
@@ -85,6 +86,19 @@ fun MemberDetailScreen(
             ) {
                 item {
                     MemberProfileHeader(employee = employee!!)
+                }
+
+                item {
+                    Button(
+                        onClick = { onEditClick(employee!!) },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    ) {
+                        Text("Edit Employee")
+                    }
                 }
 
                 item {
