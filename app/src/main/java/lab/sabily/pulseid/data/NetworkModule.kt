@@ -23,7 +23,7 @@ interface AuthApi {
     @GET("/api/profile")
     suspend fun getProfile(): ProfileResponse
 
-    @GET("/api/employee_key")
+    @GET("/api/employee/key")
     suspend fun getEmployeeKey(): EmployeeKeyResponse
 
     @GET("/api/attendance/present")
@@ -45,7 +45,7 @@ interface AuthApi {
     suspend fun getMemberDetail(@Query("uuid") uuid: String): MemberDetailResponse
 
     @Multipart
-    @POST("/api/import-employee")
+    @POST("/api/employee/import")
     suspend fun importEmployees(@Part file: MultipartBody.Part): ImportEmployeeResponse
 }
 
