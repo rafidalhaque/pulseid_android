@@ -5,6 +5,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -33,6 +34,18 @@ fun LeaveHistoryScreen(
     
     val refreshState = rememberPullToRefreshState()
     var isRefreshing by remember { mutableStateOf(false) }
+
+    var selectedStatus by remember { mutableStateOf("All") }
+    var selectedDate by remember { mutableStateOf<String?>(null) }
+    var showDatePicker by remember { mutableStateOf(false) }
+
+    val filteredRecords = remember(leaveRecords, selectedStatus, selectedDate) {
+        leaveRecords.filter { record ->
+            val statusMatch = selectedStatus == "All" || record.isApproved == selectedStatus
+            val dateMatch = selectedDate == null || record.date.contains(selectedDate!!, ignoreCase = true)
+            statusMatch && dateMatch
+        }
+    }
 
     val fetchLeaveRecords = suspend {
         isRefreshing = true
@@ -90,17 +103,53 @@ fun LeaveHistoryScreen(
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
 
-                if (isLoading && !isRefreshing) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val statuses = listOf("All", "Approved", "Not Approved", "Rejected")
+                    statuses.forEach { status ->
+                        FilterChip(
+                            selected = selectedStatus == status,
+                            onClick = { selectedStatus = status },
+                            label = { Text(status, style = MaterialTheme.typography.labelSmall) }
+                        )
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = if (selectedDate == null) "All Dates" else "Date: $selectedDate",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Row {
+                        if (selectedDate != null) {
+                            TextButton(onClick = { selectedDate = null }) {
+                                Text("Clear Date")
+                            }
+                        }
+                        IconButton(onClick = { showDatePicker = true }) {
+                            Icon(Icons.Default.DateRange, contentDescription = "Pick Date")
+                        }
+                    }
+                }
+
+                if (isLoading && !isRefreshing && leaveRecords.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
                     }
-                } else if (error != null) {
+                } else if (error != null && leaveRecords.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text(text = error!!, color = MaterialTheme.colorScheme.error)
                     }
-                } else if (leaveRecords.isEmpty()) {
+                } else if (filteredRecords.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(text = "No leave records found")
+                        Text(text = if (leaveRecords.isEmpty()) "No leave records found" else "No records match filters")
                     }
                 } else {
                     LazyColumn(
@@ -108,12 +157,37 @@ fun LeaveHistoryScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                         contentPadding = PaddingValues(bottom = 80.dp)
                     ) {
-                        items(leaveRecords) { record ->
+                        items(filteredRecords) { record ->
                             LeaveRecordCard(record)
                         }
                     }
                 }
             }
+        }
+    }
+
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState()
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let {
+                        val sdf = SimpleDateFormat("dd MMM, yyyy", Locale.getDefault())
+                        selectedDate = sdf.format(Date(it))
+                    }
+                    showDatePicker = false
+                }) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text("Cancel")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
         }
     }
 }
