@@ -238,6 +238,28 @@ fun AttendanceHistoryItem(
     displayFormat: SimpleDateFormat,
     dateFormat: SimpleDateFormat
 ) {
+    val parseTime = { timeStr: String? ->
+        if (timeStr == null) null else {
+            try {
+                isoFormat.parse(timeStr)
+            } catch (e: Exception) {
+                try {
+                    SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).apply {
+                        timeZone = isoFormat.timeZone
+                    }.parse(timeStr)
+                } catch (e2: Exception) {
+                    try {
+                        SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSSSS", Locale.getDefault()).apply {
+                            timeZone = isoFormat.timeZone
+                        }.parse(timeStr)
+                    } catch (e3: Exception) {
+                        null
+                    }
+                }
+            }
+        }
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -260,18 +282,14 @@ fun AttendanceHistoryItem(
                 } else if (record.entryTime == null) {
                     "N/A"
                 } else {
-                    try {
-                        val entry = isoFormat.parse(record.entryTime!!)
-                        val exit = isoFormat.parse(record.exitTime!!)
-                        if (entry != null && exit != null) {
-                            val diff = exit.time - entry.time
-                            val hours = diff / (1000 * 60 * 60)
-                            val minutes = (diff / (1000 * 60)) % 60
-                            "${hours}h ${minutes}m"
-                        } else "N/A"
-                    } catch (e: Exception) {
-                        "N/A"
-                    }
+                    val entry = parseTime(record.entryTime)
+                    val exit = parseTime(record.exitTime)
+                    if (entry != null && exit != null) {
+                        val diff = exit.time - entry.time
+                        val hours = diff / (1000 * 60 * 60)
+                        val minutes = (diff / (1000 * 60)) % 60
+                        "${hours}h ${minutes}m"
+                    } else "N/A"
                 }
                 Text(
                     text = durationText,
@@ -292,28 +310,16 @@ fun AttendanceHistoryItem(
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                 Column {
                     Text(text = "Entry", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-                    val entryTime = if (record.entryTime == null) "--:--" else {
-                        try {
-                            val d = isoFormat.parse(record.entryTime!!)
-                            d?.let { timeFormat.format(it) } ?: record.entryTime!!
-                        } catch (e: Exception) {
-                            record.entryTime!!
-                        }
-                    }
-                    Text(text = entryTime, style = MaterialTheme.typography.bodyLarge)
+                    val entryDate = parseTime(record.entryTime)
+                    val entryTimeStr = entryDate?.let { timeFormat.format(it) } ?: record.entryTime ?: "--:--"
+                    Text(text = entryTimeStr, style = MaterialTheme.typography.bodyLarge)
                 }
 
                 Column {
                     Text(text = "Exit", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-                    val exitTime = if (record.exitTime == null) "--:--" else {
-                        try {
-                            val d = isoFormat.parse(record.exitTime!!)
-                            d?.let { timeFormat.format(it) } ?: record.exitTime!!
-                        } catch (e: Exception) {
-                            record.exitTime!!
-                        }
-                    }
-                    Text(text = exitTime, style = MaterialTheme.typography.bodyLarge)
+                    val exitDate = parseTime(record.exitTime)
+                    val exitTimeStr = exitDate?.let { timeFormat.format(it) } ?: record.exitTime ?: "--:--"
+                    Text(text = exitTimeStr, style = MaterialTheme.typography.bodyLarge)
                 }
             }
 
@@ -323,7 +329,7 @@ fun AttendanceHistoryItem(
                     modifier = Modifier.padding(top = 12.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    val entryDate = try { isoFormat.parse(record.entryTime!!) } catch (e: Exception) { null }
+                    val entryDate = parseTime(record.entryTime)
                     if (entryDate != null) {
                         val calendar = Calendar.getInstance().apply { time = entryDate }
                         val policyStart = policy.officeStart.split(":")
@@ -350,7 +356,7 @@ fun AttendanceHistoryItem(
                     }
 
                     if (record.exitTime != null) {
-                        val exitDate = try { isoFormat.parse(record.exitTime!!) } catch (e: Exception) { null }
+                        val exitDate = parseTime(record.exitTime)
                         if (exitDate != null) {
                             val policyEnd = policy.officeEnd.split(":")
                             val endHour = policyEnd[0].toInt()
