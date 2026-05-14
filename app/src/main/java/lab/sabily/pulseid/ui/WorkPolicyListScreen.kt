@@ -48,6 +48,11 @@ fun WorkPolicyListScreen(
 
     LaunchedEffect(Unit) {
         fetchPolicies()
+        // Auto-refresh every 30 seconds
+        while (true) {
+            kotlinx.coroutines.delay(30000)
+            fetchPolicies()
+        }
     }
 
     Scaffold(

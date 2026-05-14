@@ -148,7 +148,9 @@ fun AddWorkPolicyScreen(
                             )
                             val response = authApi.addWorkPolicy(request)
                             if (response.success) {
-                                snackbarHostState.showSnackbar("Work policy added")
+                                launch {
+                                    snackbarHostState.showSnackbar("Work policy added")
+                                }
                                 onSuccess()
                             } else {
                                 snackbarHostState.showSnackbar(response.message ?: "Failed to add policy")

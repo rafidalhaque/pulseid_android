@@ -156,7 +156,9 @@ fun EditWorkPolicyScreen(
                             
                             val response = authApi.editWorkPolicy(request)
                             if (response.success) {
-                                snackbarHostState.showSnackbar("Work policy updated")
+                                launch {
+                                    snackbarHostState.showSnackbar("Work policy updated")
+                                }
                                 onSuccess()
                             } else {
                                 snackbarHostState.showSnackbar(response.message ?: "Failed to update policy")
