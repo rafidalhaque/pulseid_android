@@ -59,6 +59,15 @@ interface AuthApi {
 
     @GET("/api/settings/holidays")
     suspend fun getHolidays(): HolidaysResponse
+
+    @GET("/api/settings/work_policy")
+    suspend fun getWorkPolicies(): WorkPolicyResponse
+
+    @POST("/api/settings/work_policy/add")
+    suspend fun addWorkPolicy(@Body request: AddWorkPolicyRequest): GenericResponse
+
+    @retrofit2.http.PATCH("/api/settings/work_policy/edit")
+    suspend fun editWorkPolicy(@Body request: EditWorkPolicyRequest): GenericResponse
 }
 
 class NetworkModule(private val securityManager: SecurityManager) {

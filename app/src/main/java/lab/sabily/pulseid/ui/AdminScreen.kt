@@ -10,12 +10,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import lab.sabily.pulseid.data.AuthApi
+import lab.sabily.pulseid.ui.WorkPolicyListScreen
+import lab.sabily.pulseid.ui.AddWorkPolicyScreen
+import lab.sabily.pulseid.ui.EditWorkPolicyScreen
+import lab.sabily.pulseid.ui.HolidaysScreen
 
 @Composable
 fun AdminScreen(authApi: AuthApi) {
     var currentSubScreen by remember { mutableStateOf<AdminSubScreen?>(null) }
     var selectedEmployeeId by remember { mutableStateOf<String?>(null) }
     var employeeToEdit by remember { mutableStateOf<lab.sabily.pulseid.data.Employee?>(null) }
+    var policyToEdit by remember { mutableStateOf<lab.sabily.pulseid.data.WorkPolicy?>(null) }
 
     BackHandler(enabled = currentSubScreen != null) {
         currentSubScreen = when (currentSubScreen) {
@@ -23,7 +28,10 @@ fun AdminScreen(authApi: AuthApi) {
             AdminSubScreen.LOGS -> null
             AdminSubScreen.ALL_EMPLOYEES -> null
             AdminSubScreen.HOLIDAYS -> null
+            AdminSubScreen.WORK_POLICY -> null
             AdminSubScreen.ADD_HOLIDAY -> AdminSubScreen.HOLIDAYS
+            AdminSubScreen.ADD_WORK_POLICY -> AdminSubScreen.WORK_POLICY
+            AdminSubScreen.EDIT_WORK_POLICY -> AdminSubScreen.WORK_POLICY
             AdminSubScreen.EMPLOYEE_DETAIL -> AdminSubScreen.ALL_EMPLOYEES
             AdminSubScreen.ADD_EMPLOYEE -> AdminSubScreen.ALL_EMPLOYEES
             AdminSubScreen.EDIT_EMPLOYEE -> AdminSubScreen.EMPLOYEE_DETAIL
@@ -32,6 +40,41 @@ fun AdminScreen(authApi: AuthApi) {
     }
 
     when (currentSubScreen) {
+        AdminSubScreen.WORK_POLICY -> {
+            Column(modifier = Modifier.fillMaxSize()) {
+                IconButton(
+                    onClick = { currentSubScreen = null },
+                    modifier = Modifier.padding(8.dp)
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                }
+                WorkPolicyListScreen(
+                    authApi = authApi,
+                    onAddClick = { currentSubScreen = AdminSubScreen.ADD_WORK_POLICY },
+                    onEditClick = { policy ->
+                        policyToEdit = policy
+                        currentSubScreen = AdminSubScreen.EDIT_WORK_POLICY
+                    }
+                )
+            }
+        }
+        AdminSubScreen.ADD_WORK_POLICY -> {
+            AddWorkPolicyScreen(
+                authApi = authApi,
+                onSuccess = { currentSubScreen = AdminSubScreen.WORK_POLICY },
+                onBack = { currentSubScreen = AdminSubScreen.WORK_POLICY }
+            )
+        }
+        AdminSubScreen.EDIT_WORK_POLICY -> {
+            policyToEdit?.let { policy ->
+                EditWorkPolicyScreen(
+                    authApi = authApi,
+                    policy = policy,
+                    onSuccess = { currentSubScreen = AdminSubScreen.WORK_POLICY },
+                    onBack = { currentSubScreen = AdminSubScreen.WORK_POLICY }
+                )
+            }
+        }
         AdminSubScreen.HOLIDAYS -> {
             Column(modifier = Modifier.fillMaxSize()) {
                 IconButton(
@@ -171,11 +214,18 @@ fun AdminScreen(authApi: AuthApi) {
                 ) {
                     Text("Holidays")
                 }
+
+                Button(
+                    onClick = { currentSubScreen = AdminSubScreen.WORK_POLICY },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Work Policy")
+                }
             }
         }
     }
 }
 
 enum class AdminSubScreen {
-    IMPORT, LOGS, ALL_EMPLOYEES, EMPLOYEE_DETAIL, ADD_EMPLOYEE, EDIT_EMPLOYEE, ADD_HOLIDAY, HOLIDAYS
+    IMPORT, LOGS, ALL_EMPLOYEES, EMPLOYEE_DETAIL, ADD_EMPLOYEE, EDIT_EMPLOYEE, ADD_HOLIDAY, HOLIDAYS, WORK_POLICY, ADD_WORK_POLICY, EDIT_WORK_POLICY
 }

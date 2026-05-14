@@ -158,3 +158,41 @@ data class HolidaysResponse(
     val success: Boolean,
     val holidays: List<Holiday>
 )
+
+@Serializable
+data class WorkPolicy(
+    val id: String,
+    @SerialName("start_date") val startDate: String,
+    @SerialName("end_date") val endDate: String,
+    @SerialName("office_start") val officeStart: String,
+    @SerialName("office_end") val officeEnd: String,
+    @SerialName("late_minutes") val lateMinutes: Int,
+    @SerialName("early_minutes") val earlyMinutes: Int
+)
+
+@Serializable
+data class WorkPolicyResponse(
+    val success: Boolean,
+    val policy: List<WorkPolicy>
+)
+
+@Serializable
+data class AddWorkPolicyRequest(
+    @SerialName("start_date") val startDate: String,
+    @SerialName("end_date") val endDate: String,
+    @SerialName("office_start") val officeStart: String,
+    @SerialName("office_end") val officeEnd: String,
+    @SerialName("late_minutes") val lateMinutes: Int,
+    @SerialName("early_minutes") val earlyMinutes: Int
+)
+
+@Serializable
+data class EditWorkPolicyRequest(
+    @SerialName("work_policy_id") val workPolicyId: String,
+    @SerialName("start_date") val startDate: String? = null,
+    @SerialName("end_date") val endDate: String? = null,
+    @SerialName("office_start") val officeStart: String? = null,
+    @SerialName("office_end") val officeEnd: String? = null,
+    @SerialName("late_minutes") val lateMinutes: Int? = null,
+    @SerialName("early_minutes") val earlyMinutes: Int? = null
+)
