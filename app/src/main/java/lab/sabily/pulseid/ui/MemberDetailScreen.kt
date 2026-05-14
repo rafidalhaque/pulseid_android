@@ -36,6 +36,7 @@ fun MemberDetailScreen(
     val scope = rememberCoroutineScope()
     val refreshState = rememberPullToRefreshState()
     var isRefreshing by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
 
     val dhakaZone = remember { TimeZone.getTimeZone("Asia/Dhaka") }
     val dateFormat = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).apply { timeZone = dhakaZone } }
@@ -69,73 +70,84 @@ fun MemberDetailScreen(
         fetchDetail()
     }
 
-    PullToRefreshBox(
-        isRefreshing = isRefreshing,
-        onRefresh = {
-            scope.launch {
-                fetchDetail()
-            }
-        },
-        state = refreshState,
-        modifier = Modifier.fillMaxSize()
-    ) {
-        if (isLoading && !isRefreshing) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-        } else if (error != null) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(text = error!!, color = MaterialTheme.colorScheme.error)
-            }
-        } else if (employee != null) {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                contentPadding = PaddingValues(bottom = 32.dp)
-            ) {
-                item {
-                    MemberProfileHeader(employee = employee!!)
+    Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+    ) { padding ->
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = {
+                scope.launch {
+                    fetchDetail()
                 }
-
-                item {
-                    Button(
-                        onClick = { onEditClick(employee!!) },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+            },
+            state = refreshState,
+            modifier = Modifier.fillMaxSize().padding(padding)
+        ) {
+            if (isLoading && !isRefreshing) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            } else if (error != null) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(text = error!!, color = MaterialTheme.colorScheme.error)
+                }
+            } else if (employee != null) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize().padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(bottom = 32.dp)
+                ) {
+                    item {
+                        MemberProfileHeader(
+                            employee = employee!!,
+                            onIdCopied = {
+                                scope.launch {
+                                    snackbarHostState.showSnackbar("ID copied to clipboard")
+                                }
+                            }
                         )
-                    ) {
-                        Text("Edit Employee")
                     }
-                }
 
-                item {
-                    Text(
-                        text = "Attendance History",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
-                }
+                    item {
+                        Button(
+                            onClick = { onEditClick(employee!!) },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        ) {
+                            Text("Edit Employee")
+                        }
+                    }
 
-                if (history.isEmpty()) {
                     item {
                         Text(
-                            text = "No attendance history found",
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(vertical = 16.dp)
+                            text = "Attendance History",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(top = 8.dp)
                         )
                     }
-                } else {
-                    items(history) { record ->
-                        AttendanceHistoryItem(
-                            record = record,
-                            isoFormat = isoFormat,
-                            timeFormat = timeFormat,
-                            displayFormat = displayFormat,
-                            dateFormat = dateFormat
-                        )
+
+                    if (history.isEmpty()) {
+                        item {
+                            Text(
+                                text = "No attendance history found",
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(vertical = 16.dp)
+                            )
+                        }
+                    } else {
+                        items(history) { record ->
+                            AttendanceHistoryItem(
+                                record = record,
+                                isoFormat = isoFormat,
+                                timeFormat = timeFormat,
+                                displayFormat = displayFormat,
+                                dateFormat = dateFormat
+                            )
+                        }
                     }
                 }
             }
@@ -144,7 +156,7 @@ fun MemberDetailScreen(
 }
 
 @Composable
-fun MemberProfileHeader(employee: Employee) {
+fun MemberProfileHeader(employee: Employee, onIdCopied: () -> Unit) {
     val clipboardManager = LocalClipboardManager.current
     
     Card(
@@ -173,6 +185,7 @@ fun MemberProfileHeader(employee: Employee) {
                 value = employee.id,
                 onCopyClick = {
                     clipboardManager.setText(AnnotatedString(employee.id))
+                    onIdCopied()
                 }
             )
             ProfileInfoRow(label = "Email", value = employee.email)
