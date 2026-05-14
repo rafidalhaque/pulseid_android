@@ -41,7 +41,7 @@ fun AdminScreen(authApi: AuthApi) {
 
     when (currentSubScreen) {
         AdminSubScreen.WORK_POLICY -> {
-            Column(modifier = Modifier.fillMaxSize()) {
+            Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
                 IconButton(
                     onClick = { currentSubScreen = null },
                     modifier = Modifier.padding(8.dp)
@@ -76,7 +76,7 @@ fun AdminScreen(authApi: AuthApi) {
             }
         }
         AdminSubScreen.HOLIDAYS -> {
-            Column(modifier = Modifier.fillMaxSize()) {
+            Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
                 IconButton(
                     onClick = { currentSubScreen = null },
                     modifier = Modifier.padding(8.dp)
@@ -97,7 +97,7 @@ fun AdminScreen(authApi: AuthApi) {
             )
         }
         AdminSubScreen.IMPORT -> {
-            Column(modifier = Modifier.fillMaxSize()) {
+            Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
                 IconButton(
                     onClick = { currentSubScreen = null },
                     modifier = Modifier.padding(8.dp)
@@ -108,7 +108,7 @@ fun AdminScreen(authApi: AuthApi) {
             }
         }
         AdminSubScreen.LOGS -> {
-            Column(modifier = Modifier.fillMaxSize()) {
+            Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
                 IconButton(
                     onClick = { currentSubScreen = null },
                     modifier = Modifier.padding(8.dp)
@@ -119,7 +119,7 @@ fun AdminScreen(authApi: AuthApi) {
             }
         }
         AdminSubScreen.ALL_EMPLOYEES -> {
-            Column(modifier = Modifier.fillMaxSize()) {
+            Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
                 IconButton(
                     onClick = { currentSubScreen = null },
                     modifier = Modifier.padding(8.dp)
@@ -139,7 +139,7 @@ fun AdminScreen(authApi: AuthApi) {
             }
         }
         AdminSubScreen.EMPLOYEE_DETAIL -> {
-            Column(modifier = Modifier.fillMaxSize()) {
+            Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
                 IconButton(
                     onClick = { currentSubScreen = AdminSubScreen.ALL_EMPLOYEES },
                     modifier = Modifier.padding(8.dp)
@@ -183,6 +183,7 @@ fun AdminScreen(authApi: AuthApi) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .statusBarsPadding()
                     .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically)
