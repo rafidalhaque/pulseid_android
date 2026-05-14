@@ -12,6 +12,10 @@ import lab.sabily.pulseid.data.SecurityManager
 
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -23,6 +27,7 @@ fun ProfileScreen(securityManager: SecurityManager, authApi: AuthApi, onLogout: 
     val scope = rememberCoroutineScope()
     val refreshState = rememberPullToRefreshState()
     var isRefreshing by remember { mutableStateOf(false) }
+    val clipboardManager = LocalClipboardManager.current
 
     val fetchProfile = suspend {
         isRefreshing = true

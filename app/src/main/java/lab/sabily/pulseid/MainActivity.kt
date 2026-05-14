@@ -132,7 +132,8 @@ class MainActivity : ComponentActivity() {
                             when (selectedTab) {
                                 0 -> BleAdvertisingScreen(
                                     bleKeyManager = bleKeyManager,
-                                    authApi = networkModule.api
+                                    authApi = networkModule.api,
+                                    isAdmin = isAdmin
                                 )
                                 1 -> AttendanceHistoryScreen(
                                     authApi = networkModule.api,
@@ -178,6 +179,7 @@ class MainActivity : ComponentActivity() {
 fun BleAdvertisingScreen(
     bleKeyManager: BleKeyManager,
     authApi: AuthApi,
+    isAdmin: Boolean,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
