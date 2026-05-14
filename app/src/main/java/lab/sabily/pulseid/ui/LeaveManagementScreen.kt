@@ -29,6 +29,7 @@ fun LeaveManagementScreen(
 ) {
     val scope = rememberCoroutineScope()
     var leaveRecords by remember { mutableStateOf<List<LeaveRecord>>(emptyList()) }
+    var employees by remember { mutableStateOf<List<lab.sabily.pulseid.data.Employee>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
     
@@ -50,6 +51,12 @@ fun LeaveManagementScreen(
             } else {
                 error = "Failed to fetch leave records"
             }
+            
+            // Fetch employees for name mapping fallback
+            val empResponse = authApi.getAllMembers()
+            if (empResponse.success) {
+                employees = empResponse.employee
+            }
         } catch (e: Exception) {
             error = e.message ?: "An unknown error occurred"
         } finally {
@@ -60,6 +67,11 @@ fun LeaveManagementScreen(
 
     LaunchedEffect(Unit) {
         fetchLeaveRecords()
+        // Auto-refresh every 10 seconds
+        while (true) {
+            kotlinx.coroutines.delay(10000)
+            fetchLeaveRecords()
+        }
     }
 
     Scaffold(
@@ -86,11 +98,11 @@ fun LeaveManagementScreen(
             modifier = Modifier.fillMaxSize().padding(innerPadding)
         ) {
             Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-                if (isLoading && !isRefreshing) {
+                if (isLoading && !isRefreshing && leaveRecords.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
                     }
-                } else if (error != null) {
+                } else if (error != null && leaveRecords.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text(text = error!!, color = MaterialTheme.colorScheme.error)
                     }
@@ -105,8 +117,12 @@ fun LeaveManagementScreen(
                         contentPadding = PaddingValues(bottom = 16.dp)
                     ) {
                         items(leaveRecords) { record ->
+                            val employeeName = record.employeeName 
+                                ?: employees.find { it.id == record.employeeId }?.name 
+                                ?: "Unknown Employee"
+                                
                             LeaveManagementCard(
-                                record = record,
+                                record = record.copy(employeeName = employeeName),
                                 onApprove = { showConfirmDialog = record to "Approved" },
                                 onReject = { showConfirmDialog = record to "Rejected" }
                             )
@@ -119,26 +135,33 @@ fun LeaveManagementScreen(
 
     if (showConfirmDialog != null) {
         val (record, action) = showConfirmDialog!!
+        val employeeName = record.employeeName 
+            ?: employees.find { it.id == record.employeeId }?.name 
+            ?: "Unknown Employee"
+
         AlertDialog(
             onDismissRequest = { showConfirmDialog = null },
             title = { Text("$action Leave Request") },
-            text = { Text("Are you sure you want to $action the leave request for ${record.employeeName} on ${record.date}?") },
+            text = { Text("Are you sure you want to $action the leave request for $employeeName on ${record.date}?") },
             confirmButton = {
                 TextButton(
                     onClick = {
+                        val currentAction = action
+                        val currentRecord = record
+                        showConfirmDialog = null // Dismiss immediately
                         scope.launch {
                             try {
-                                val response = authApi.manageLeave(ManageLeaveRequest(record.id, action))
+                                val response = authApi.manageLeave(ManageLeaveRequest(currentRecord.id, currentAction))
                                 if (response.success) {
-                                    snackbarHostState.showSnackbar("Request $action")
+                                    launch {
+                                        snackbarHostState.showSnackbar("Request $currentAction")
+                                    }
                                     fetchLeaveRecords()
                                 } else {
                                     snackbarHostState.showSnackbar(response.message ?: "Action failed")
                                 }
                             } catch (e: Exception) {
                                 snackbarHostState.showSnackbar(e.message ?: "An error occurred")
-                            } finally {
-                                showConfirmDialog = null
                             }
                         }
                     }

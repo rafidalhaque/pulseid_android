@@ -59,6 +59,11 @@ fun LeaveHistoryScreen(
 
     LaunchedEffect(Unit) {
         fetchLeaveRecords()
+        // Auto-refresh every 15 seconds
+        while (true) {
+            kotlinx.coroutines.delay(15000)
+            fetchLeaveRecords()
+        }
     }
 
     Scaffold(

@@ -141,7 +141,10 @@ fun RequestLeaveScreen(
                             )
                             val response = authApi.addLeave(request)
                             if (response.success) {
-                                snackbarHostState.showSnackbar("Leave requested successfully")
+                                // Launch snackbar in a separate coroutine so it doesn't block onSuccess
+                                launch {
+                                    snackbarHostState.showSnackbar("Leave requested successfully")
+                                }
                                 onSuccess()
                             } else {
                                 snackbarHostState.showSnackbar(response.message ?: "Failed to request leave")
