@@ -137,3 +137,24 @@ data class AddEmployeeResponse(
     val message: String? = null,
     val id: String? = null
 )
+
+@Serializable
+data class AddHolidayResponse(
+    val success: Boolean,
+    val message: String? = null,
+    val id: String? = null
+)
+
+@Serializable
+data class Holiday(
+    val id: String,
+    val date: String,
+    @SerialName("holiday_name") val holidayName: String,
+    @SerialName("is_national") val isNational: Boolean
+)
+
+@Serializable
+data class HolidaysResponse(
+    val success: Boolean,
+    val holidays: List<Holiday>
+)

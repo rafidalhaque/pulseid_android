@@ -22,7 +22,8 @@ fun AdminScreen(authApi: AuthApi) {
             AdminSubScreen.IMPORT -> null
             AdminSubScreen.LOGS -> null
             AdminSubScreen.ALL_EMPLOYEES -> null
-            AdminSubScreen.ADD_HOLIDAY -> null
+            AdminSubScreen.HOLIDAYS -> null
+            AdminSubScreen.ADD_HOLIDAY -> AdminSubScreen.HOLIDAYS
             AdminSubScreen.EMPLOYEE_DETAIL -> AdminSubScreen.ALL_EMPLOYEES
             AdminSubScreen.ADD_EMPLOYEE -> AdminSubScreen.ALL_EMPLOYEES
             AdminSubScreen.EDIT_EMPLOYEE -> AdminSubScreen.EMPLOYEE_DETAIL
@@ -31,11 +32,25 @@ fun AdminScreen(authApi: AuthApi) {
     }
 
     when (currentSubScreen) {
+        AdminSubScreen.HOLIDAYS -> {
+            Column(modifier = Modifier.fillMaxSize()) {
+                IconButton(
+                    onClick = { currentSubScreen = null },
+                    modifier = Modifier.padding(8.dp)
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                }
+                HolidaysScreen(
+                    authApi = authApi,
+                    onAddClick = { currentSubScreen = AdminSubScreen.ADD_HOLIDAY }
+                )
+            }
+        }
         AdminSubScreen.ADD_HOLIDAY -> {
             AddHolidayScreen(
                 authApi = authApi,
-                onSuccess = { currentSubScreen = null },
-                onBack = { currentSubScreen = null }
+                onSuccess = { currentSubScreen = AdminSubScreen.HOLIDAYS },
+                onBack = { currentSubScreen = AdminSubScreen.HOLIDAYS }
             )
         }
         AdminSubScreen.IMPORT -> {
@@ -151,10 +166,10 @@ fun AdminScreen(authApi: AuthApi) {
                 }
 
                 Button(
-                    onClick = { currentSubScreen = AdminSubScreen.ADD_HOLIDAY },
+                    onClick = { currentSubScreen = AdminSubScreen.HOLIDAYS },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Add Holiday")
+                    Text("Holidays")
                 }
             }
         }
@@ -162,5 +177,5 @@ fun AdminScreen(authApi: AuthApi) {
 }
 
 enum class AdminSubScreen {
-    IMPORT, LOGS, ALL_EMPLOYEES, EMPLOYEE_DETAIL, ADD_EMPLOYEE, EDIT_EMPLOYEE, ADD_HOLIDAY
+    IMPORT, LOGS, ALL_EMPLOYEES, EMPLOYEE_DETAIL, ADD_EMPLOYEE, EDIT_EMPLOYEE, ADD_HOLIDAY, HOLIDAYS
 }

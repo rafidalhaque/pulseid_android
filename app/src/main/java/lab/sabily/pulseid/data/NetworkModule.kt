@@ -56,6 +56,9 @@ interface AuthApi {
 
     @POST("/api/settings/holidays/add")
     suspend fun addHoliday(@Body request: AddHolidayRequest): GenericResponse
+
+    @GET("/api/settings/holidays")
+    suspend fun getHolidays(): HolidaysResponse
 }
 
 class NetworkModule(private val securityManager: SecurityManager) {
