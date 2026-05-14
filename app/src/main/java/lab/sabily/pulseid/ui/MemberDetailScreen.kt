@@ -9,6 +9,10 @@ import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import lab.sabily.pulseid.data.AuthApi
@@ -141,6 +145,8 @@ fun MemberDetailScreen(
 
 @Composable
 fun MemberProfileHeader(employee: Employee) {
+    val clipboardManager = LocalClipboardManager.current
+    
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -162,7 +168,13 @@ fun MemberProfileHeader(employee: Employee) {
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            ProfileInfoRow(label = "Employee ID", value = employee.id)
+            ProfileInfoRow(
+                label = "ID", 
+                value = employee.id,
+                onCopyClick = {
+                    clipboardManager.setText(AnnotatedString(employee.id))
+                }
+            )
             ProfileInfoRow(label = "Email", value = employee.email)
             ProfileInfoRow(label = "ID Number", value = employee.idNumber)
             ProfileInfoRow(label = "Join Date", value = employee.joinDate ?: "N/A")
@@ -172,22 +184,37 @@ fun MemberProfileHeader(employee: Employee) {
 }
 
 @Composable
-fun ProfileInfoRow(label: String, value: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
+fun ProfileInfoRow(label: String, value: String, onCopyClick: (() -> Unit)? = null) {
+    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         Text(
             text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium,
+            style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
         )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onPrimaryContainer
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.weight(1f)
+            )
+            if (onCopyClick != null) {
+                IconButton(
+                    onClick = onCopyClick,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ContentCopy,
+                        contentDescription = "Copy $label",
+                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
+        }
     }
 }
