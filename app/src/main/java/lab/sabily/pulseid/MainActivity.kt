@@ -34,6 +34,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.EventNote
 import androidx.compose.ui.text.font.FontWeight
 import androidx.core.content.ContextCompat
 import lab.sabily.pulseid.data.AttendanceRecord
@@ -43,6 +44,7 @@ import lab.sabily.pulseid.data.NetworkModule
 import lab.sabily.pulseid.data.SecurityManager
 import lab.sabily.pulseid.ui.AdminScreen
 import lab.sabily.pulseid.ui.AttendanceHistoryScreen
+import lab.sabily.pulseid.ui.LeaveScreen
 import lab.sabily.pulseid.ui.LoginScreen
 import lab.sabily.pulseid.ui.ProfileScreen
 import lab.sabily.pulseid.ui.theme.PulseIDTheme
@@ -115,6 +117,12 @@ class MainActivity : ComponentActivity() {
                                 NavigationBarItem(
                                     selected = if (isAdmin) selectedTab == 3 else selectedTab == 2,
                                     onClick = { selectedTab = if (isAdmin) 3 else 2 },
+                                    icon = { Icon(Icons.Default.EventNote, contentDescription = "Leave") },
+                                    label = { Text("Leave", style = MaterialTheme.typography.labelLarge) }
+                                )
+                                NavigationBarItem(
+                                    selected = if (isAdmin) selectedTab == 4 else selectedTab == 3,
+                                    onClick = { selectedTab = if (isAdmin) 4 else 3 },
                                     icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
                                     label = { Text("Profile", style = MaterialTheme.typography.labelLarge) }
                                 )
@@ -144,6 +152,13 @@ class MainActivity : ComponentActivity() {
                                     if (isAdmin) {
                                         AdminScreen(authApi = networkModule.api)
                                     } else {
+                                        LeaveScreen(authApi = networkModule.api)
+                                    }
+                                }
+                                3 -> {
+                                    if (isAdmin) {
+                                        LeaveScreen(authApi = networkModule.api)
+                                    } else {
                                         ProfileScreen(
                                             securityManager = securityManager,
                                             authApi = networkModule.api,
@@ -154,7 +169,7 @@ class MainActivity : ComponentActivity() {
                                         )
                                     }
                                 }
-                                3 -> {
+                                4 -> {
                                     if (isAdmin) {
                                         ProfileScreen(
                                             securityManager = securityManager,

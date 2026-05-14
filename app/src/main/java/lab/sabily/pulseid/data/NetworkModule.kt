@@ -68,6 +68,15 @@ interface AuthApi {
 
     @retrofit2.http.PATCH("/api/settings/work_policy/edit")
     suspend fun editWorkPolicy(@Body request: EditWorkPolicyRequest): GenericResponse
+
+    @GET("/api/attendance/leave")
+    suspend fun getLeaveRecords(): LeaveResponse
+
+    @POST("/api/attendance/leave/add")
+    suspend fun addLeave(@Body request: AddLeaveRequest): GenericResponse
+
+    @retrofit2.http.PATCH("/api/attendance/leave/manage")
+    suspend fun manageLeave(@Body request: ManageLeaveRequest): GenericResponse
 }
 
 class NetworkModule(private val securityManager: SecurityManager) {

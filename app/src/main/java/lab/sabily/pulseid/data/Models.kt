@@ -196,3 +196,33 @@ data class EditWorkPolicyRequest(
     @SerialName("late_minutes") val lateMinutes: Int? = null,
     @SerialName("early_minutes") val earlyMinutes: Int? = null
 )
+
+@Serializable
+data class LeaveRecord(
+    val id: String,
+    @SerialName("employee_id") val employeeId: String,
+    @SerialName("employee_name") val employeeName: String? = null,
+    val date: String,
+    @SerialName("leave_type") val leaveType: String,
+    @SerialName("leave_cause") val leaveCause: String,
+    @SerialName("is_approved") val isApproved: String
+)
+
+@Serializable
+data class LeaveResponse(
+    val success: Boolean,
+    val body: List<LeaveRecord>
+)
+
+@Serializable
+data class AddLeaveRequest(
+    val date: String,
+    @SerialName("leave_type") val leaveType: String,
+    @SerialName("leave_cause") val leaveCause: String
+)
+
+@Serializable
+data class ManageLeaveRequest(
+    val id: String,
+    @SerialName("is_approved") val isApproved: String
+)

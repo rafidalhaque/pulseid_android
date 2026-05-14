@@ -14,6 +14,7 @@ import lab.sabily.pulseid.ui.WorkPolicyListScreen
 import lab.sabily.pulseid.ui.AddWorkPolicyScreen
 import lab.sabily.pulseid.ui.EditWorkPolicyScreen
 import lab.sabily.pulseid.ui.HolidaysScreen
+import lab.sabily.pulseid.ui.LeaveManagementScreen
 
 @Composable
 fun AdminScreen(authApi: AuthApi) {
@@ -29,6 +30,7 @@ fun AdminScreen(authApi: AuthApi) {
             AdminSubScreen.ALL_EMPLOYEES -> null
             AdminSubScreen.HOLIDAYS -> null
             AdminSubScreen.WORK_POLICY -> null
+            AdminSubScreen.LEAVE_REQUESTS -> null
             AdminSubScreen.ADD_HOLIDAY -> AdminSubScreen.HOLIDAYS
             AdminSubScreen.ADD_WORK_POLICY -> AdminSubScreen.WORK_POLICY
             AdminSubScreen.EDIT_WORK_POLICY -> AdminSubScreen.WORK_POLICY
@@ -40,6 +42,12 @@ fun AdminScreen(authApi: AuthApi) {
     }
 
     when (currentSubScreen) {
+        AdminSubScreen.LEAVE_REQUESTS -> {
+            LeaveManagementScreen(
+                authApi = authApi,
+                onBack = { currentSubScreen = null }
+            )
+        }
         AdminSubScreen.WORK_POLICY -> {
             Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
                 IconButton(
@@ -196,6 +204,13 @@ fun AdminScreen(authApi: AuthApi) {
                 }
 
                 Button(
+                    onClick = { currentSubScreen = AdminSubScreen.LEAVE_REQUESTS },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Leave Requests")
+                }
+
+                Button(
                     onClick = { currentSubScreen = AdminSubScreen.LOGS },
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -228,5 +243,5 @@ fun AdminScreen(authApi: AuthApi) {
 }
 
 enum class AdminSubScreen {
-    IMPORT, LOGS, ALL_EMPLOYEES, EMPLOYEE_DETAIL, ADD_EMPLOYEE, EDIT_EMPLOYEE, ADD_HOLIDAY, HOLIDAYS, WORK_POLICY, ADD_WORK_POLICY, EDIT_WORK_POLICY
+    IMPORT, LOGS, ALL_EMPLOYEES, EMPLOYEE_DETAIL, ADD_EMPLOYEE, EDIT_EMPLOYEE, ADD_HOLIDAY, HOLIDAYS, WORK_POLICY, ADD_WORK_POLICY, EDIT_WORK_POLICY, LEAVE_REQUESTS
 }
