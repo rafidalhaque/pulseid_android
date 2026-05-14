@@ -240,23 +240,26 @@ fun AttendanceHistoryItem(
 ) {
     val parseTime = { timeStr: String? ->
         if (timeStr == null) null else {
-            try {
-                isoFormat.parse(timeStr)
-            } catch (e: Exception) {
+            val formats = listOf(
+                "yyyy-MM-dd'T'HH:mm:ss",
+                "yyyy-MM-dd'T'HH:mm:ss.SSSSSS",
+                "yyyy-MM-dd'T'HH:mm:ss.SSS",
+                "yyyy-MM-dd HH:mm:ss",
+                "yyyy-MM-dd HH:mm:ss.SSSSSS",
+                "yyyy-MM-dd HH:mm:ss.SSS"
+            )
+            var parsedDate: Date? = null
+            for (format in formats) {
                 try {
-                    SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).apply {
+                    val sdf = SimpleDateFormat(format, Locale.getDefault()).apply {
                         timeZone = isoFormat.timeZone
-                    }.parse(timeStr)
-                } catch (e2: Exception) {
-                    try {
-                        SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSSSS", Locale.getDefault()).apply {
-                            timeZone = isoFormat.timeZone
-                        }.parse(timeStr)
-                    } catch (e3: Exception) {
-                        null
                     }
+                    parsedDate = sdf.parse(timeStr)
+                    if (parsedDate != null) break
+                } catch (e: Exception) {
                 }
             }
+            parsedDate
         }
     }
 
@@ -315,12 +318,13 @@ fun AttendanceHistoryItem(
                     Text(text = entryTimeStr, style = MaterialTheme.typography.bodyLarge)
 
                     if (policy != null && entryDate != null) {
+                        val zone = isoFormat.timeZone
                         val policyStart = policy.officeStart.split(":")
                         val startHour = policyStart[0].toInt()
                         val startMin = policyStart[1].toInt()
 
-                        val entryCal = Calendar.getInstance().apply { time = entryDate }
-                        val scheduledStartCal = Calendar.getInstance().apply {
+                        val entryCal = Calendar.getInstance(zone).apply { time = entryDate }
+                        val scheduledStartCal = Calendar.getInstance(zone).apply {
                             time = entryDate
                             set(Calendar.HOUR_OF_DAY, startHour)
                             set(Calendar.MINUTE, startMin)
@@ -333,7 +337,7 @@ fun AttendanceHistoryItem(
                             val lateDiff = entryCal.timeInMillis - scheduledStartCal.timeInMillis
                             val lateMins = lateDiff / (60 * 1000)
                             Text(
-                                text = "Late: ${lateMins}m",
+                                text = "Late Entry: ${lateMins}m",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = Color.Red,
                                 fontWeight = FontWeight.Bold
@@ -349,12 +353,13 @@ fun AttendanceHistoryItem(
                     Text(text = exitTimeStr, style = MaterialTheme.typography.bodyLarge)
 
                     if (policy != null && exitDate != null) {
+                        val zone = isoFormat.timeZone
                         val policyEnd = policy.officeEnd.split(":")
                         val endHour = policyEnd[0].toInt()
                         val endMin = policyEnd[1].toInt()
 
-                        val exitCal = Calendar.getInstance().apply { time = exitDate }
-                        val scheduledEndCal = Calendar.getInstance().apply {
+                        val exitCal = Calendar.getInstance(zone).apply { time = exitDate }
+                        val scheduledEndCal = Calendar.getInstance(zone).apply {
                             time = exitDate
                             set(Calendar.HOUR_OF_DAY, endHour)
                             set(Calendar.MINUTE, endMin)
@@ -367,7 +372,7 @@ fun AttendanceHistoryItem(
                             val earlyDiff = scheduledEndCal.timeInMillis - exitCal.timeInMillis
                             val earlyMins = earlyDiff / (60 * 1000)
                             Text(
-                                text = "Early: ${earlyMins}m",
+                                text = "Early Exit: ${earlyMins}m",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = Color(0xFFFFA500),
                                 fontWeight = FontWeight.Bold
@@ -377,7 +382,7 @@ fun AttendanceHistoryItem(
                             val otMins = otDiff / (60 * 1000)
                             if (otMins > 0) {
                                 Text(
-                                    text = "OT: ${otMins}m",
+                                    text = "Overtime: ${otMins}m",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = Color(0xFF4CAF50),
                                     fontWeight = FontWeight.Bold
