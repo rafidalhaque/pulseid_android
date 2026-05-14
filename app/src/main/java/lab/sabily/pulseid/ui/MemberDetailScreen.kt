@@ -9,6 +9,7 @@ import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -18,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import lab.sabily.pulseid.data.AuthApi
 import lab.sabily.pulseid.data.Employee
 import lab.sabily.pulseid.data.AttendanceRecord
+import lab.sabily.pulseid.data.WorkPolicy
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -31,6 +33,7 @@ fun MemberDetailScreen(
 ) {
     var employee by remember { mutableStateOf<Employee?>(null) }
     var history by remember { mutableStateOf<List<AttendanceRecord>>(emptyList()) }
+    var workPolicies by remember { mutableStateOf<List<WorkPolicy>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
@@ -52,11 +55,14 @@ fun MemberDetailScreen(
         isRefreshing = true
         try {
             val response = authApi.getMemberDetail(employeeId)
-            if (response.success) {
+            val policyResponse = authApi.getWorkPolicies()
+            
+            if (response.success && policyResponse.success) {
                 employee = response.employee
                 history = response.history.sortedByDescending { it.date }
+                workPolicies = policyResponse.policy
             } else {
-                error = "Failed to fetch employee details"
+                error = "Failed to fetch details"
             }
         } catch (e: Exception) {
             error = e.message ?: "An unknown error occurred"
@@ -140,8 +146,12 @@ fun MemberDetailScreen(
                         }
                     } else {
                         items(history) { record ->
+                            val matchedPolicy = workPolicies.find { 
+                                record.date >= it.startDate && record.date <= it.endDate 
+                            }
                             AttendanceHistoryItem(
                                 record = record,
+                                policy = matchedPolicy,
                                 isoFormat = isoFormat,
                                 timeFormat = timeFormat,
                                 displayFormat = displayFormat,

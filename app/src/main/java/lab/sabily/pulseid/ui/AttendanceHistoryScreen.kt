@@ -13,10 +13,12 @@ import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import lab.sabily.pulseid.data.AttendanceRecord
 import lab.sabily.pulseid.data.AuthApi
+import lab.sabily.pulseid.data.WorkPolicy
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -25,6 +27,7 @@ import java.util.*
 fun AttendanceHistoryScreen(authApi: AuthApi, isAdmin: Boolean) {
     val scope = rememberCoroutineScope()
     var allRecords by remember { mutableStateOf<List<AttendanceRecord>>(emptyList()) }
+    var workPolicies by remember { mutableStateOf<List<WorkPolicy>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
 
@@ -51,11 +54,14 @@ fun AttendanceHistoryScreen(authApi: AuthApi, isAdmin: Boolean) {
     val fetchHistory = suspend {
         isRefreshing = true
         try {
-            val response = authApi.getAttendanceHistory(all = if (showAllRecords) true else null)
-            if (response.success) {
-                allRecords = response.records.sortedByDescending { it.date }
+            val historyResponse = authApi.getAttendanceHistory(all = if (showAllRecords) true else null)
+            val policyResponse = authApi.getWorkPolicies()
+            
+            if (historyResponse.success && policyResponse.success) {
+                allRecords = historyResponse.records.sortedByDescending { it.date }
+                workPolicies = policyResponse.policy
             } else {
-                error = "Failed to fetch history"
+                error = "Failed to fetch data"
             }
         } catch (e: Exception) {
             error = e.message ?: "An unknown error occurred"
@@ -71,7 +77,7 @@ fun AttendanceHistoryScreen(authApi: AuthApi, isAdmin: Boolean) {
 
     val filteredRecords = remember(allRecords, fromDate, toDate) {
         allRecords.filter { record ->
-            val recordDate = dateFormat.parse(record.date)?.time ?: 0L
+            val recordDate = try { dateFormat.parse(record.date)?.time ?: 0L } catch(e:Exception) { 0L }
             val afterFrom = fromDate?.let { recordDate >= it } ?: true
             val beforeTo = toDate?.let { recordDate <= it } ?: true
             afterFrom && beforeTo
@@ -150,7 +156,10 @@ fun AttendanceHistoryScreen(authApi: AuthApi, isAdmin: Boolean) {
                     contentPadding = PaddingValues(bottom = 16.dp)
                 ) {
                     items(filteredRecords) { record ->
-                        AttendanceHistoryItem(record, isoFormat, timeFormat, displayFormat, dateFormat)
+                        val matchedPolicy = workPolicies.find { 
+                            record.date >= it.startDate && record.date <= it.endDate 
+                        }
+                        AttendanceHistoryItem(record, matchedPolicy, isoFormat, timeFormat, displayFormat, dateFormat)
                     }
                 }
             }
@@ -223,6 +232,7 @@ fun FilterButton(
 @Composable
 fun AttendanceHistoryItem(
     record: AttendanceRecord,
+    policy: WorkPolicy?,
     isoFormat: SimpleDateFormat,
     timeFormat: SimpleDateFormat,
     displayFormat: SimpleDateFormat,
@@ -243,7 +253,7 @@ fun AttendanceHistoryItem(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
-                
+
                 // Duration
                 val durationText = if (record.exitTime == null) {
                     "Still In Office"
@@ -269,7 +279,7 @@ fun AttendanceHistoryItem(
                     color = if (record.exitTime == null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            
+
             if (record.employeeName != null) {
                 Text(
                     text = record.employeeName!!,
@@ -278,7 +288,7 @@ fun AttendanceHistoryItem(
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
             }
-            
+
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                 Column {
                     Text(text = "Entry", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
@@ -292,7 +302,7 @@ fun AttendanceHistoryItem(
                     }
                     Text(text = entryTime, style = MaterialTheme.typography.bodyLarge)
                 }
-                
+
                 Column {
                     Text(text = "Exit", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                     val exitTime = if (record.exitTime == null) "--:--" else {
@@ -306,6 +316,90 @@ fun AttendanceHistoryItem(
                     Text(text = exitTime, style = MaterialTheme.typography.bodyLarge)
                 }
             }
+
+            // Status Badges
+            if (policy != null && record.entryTime != null) {
+                Row(
+                    modifier = Modifier.padding(top = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    val entryDate = try { isoFormat.parse(record.entryTime!!) } catch (e: Exception) { null }
+                    if (entryDate != null) {
+                        val calendar = Calendar.getInstance().apply { time = entryDate }
+                        val policyStart = policy.officeStart.split(":")
+                        val startHour = policyStart[0].toInt()
+                        val startMin = policyStart[1].toInt()
+
+                        val entryCal = Calendar.getInstance().apply { 
+                            time = entryDate
+                        }
+                        val scheduledStartCal = Calendar.getInstance().apply {
+                            time = entryDate
+                            set(Calendar.HOUR_OF_DAY, startHour)
+                            set(Calendar.MINUTE, startMin)
+                            set(Calendar.SECOND, 0)
+                            set(Calendar.MILLISECOND, 0)
+                        }
+
+                        val lateThreshold = scheduledStartCal.timeInMillis + (policy.lateMinutes * 60 * 1000)
+                        if (entryCal.timeInMillis > lateThreshold) {
+                            val lateDiff = entryCal.timeInMillis - scheduledStartCal.timeInMillis
+                            val lateMins = lateDiff / (60 * 1000)
+                            StatusBadge(text = "Late ${lateMins}m", color = Color.Red)
+                        }
+                    }
+
+                    if (record.exitTime != null) {
+                        val exitDate = try { isoFormat.parse(record.exitTime!!) } catch (e: Exception) { null }
+                        if (exitDate != null) {
+                            val policyEnd = policy.officeEnd.split(":")
+                            val endHour = policyEnd[0].toInt()
+                            val endMin = policyEnd[1].toInt()
+
+                            val exitCal = Calendar.getInstance().apply { time = exitDate }
+                            val scheduledEndCal = Calendar.getInstance().apply {
+                                time = exitDate
+                                set(Calendar.HOUR_OF_DAY, endHour)
+                                set(Calendar.MINUTE, endMin)
+                                set(Calendar.SECOND, 0)
+                                set(Calendar.MILLISECOND, 0)
+                            }
+
+                            val earlyThreshold = scheduledEndCal.timeInMillis - (policy.earlyMinutes * 60 * 1000)
+                            if (exitCal.timeInMillis < earlyThreshold) {
+                                val earlyDiff = scheduledEndCal.timeInMillis - exitCal.timeInMillis
+                                val earlyMins = earlyDiff / (60 * 1000)
+                                StatusBadge(text = "Early ${earlyMins}m", color = Color(0xFFFFA500)) // Orange
+                            }
+
+                            if (exitCal.timeInMillis > scheduledEndCal.timeInMillis) {
+                                val otDiff = exitCal.timeInMillis - scheduledEndCal.timeInMillis
+                                val otMins = otDiff / (60 * 1000)
+                                if (otMins > 0) {
+                                    StatusBadge(text = "OT ${otMins}m", color = Color(0xFF4CAF50)) // Green
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
+    }
+}
+
+@Composable
+fun StatusBadge(text: String, color: Color) {
+    Surface(
+        color = color.copy(alpha = 0.1f),
+        shape = MaterialTheme.shapes.extraSmall,
+        border = androidx.compose.foundation.BorderStroke(1.dp, color.copy(alpha = 0.5f))
+    ) {
+        Text(
+            text = text,
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+            style = MaterialTheme.typography.labelSmall,
+            color = color,
+            fontWeight = FontWeight.Bold
+        )
     }
 }
