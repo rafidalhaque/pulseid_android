@@ -119,6 +119,13 @@ data class EditEmployeeRequest(
 )
 
 @Serializable
+data class AddHolidayRequest(
+    val date: String,
+    val name: String,
+    @SerialName("is_national") val isNational: Boolean
+)
+
+@Serializable
 data class GenericResponse(
     val success: Boolean,
     val message: String? = null

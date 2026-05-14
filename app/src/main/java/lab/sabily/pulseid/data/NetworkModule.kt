@@ -53,6 +53,9 @@ interface AuthApi {
     @Multipart
     @POST("/api/employee/import")
     suspend fun importEmployees(@Part file: MultipartBody.Part): ImportEmployeeResponse
+
+    @POST("/api/settings/holidays/add")
+    suspend fun addHoliday(@Body request: AddHolidayRequest): GenericResponse
 }
 
 class NetworkModule(private val securityManager: SecurityManager) {

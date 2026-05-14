@@ -22,6 +22,7 @@ fun AdminScreen(authApi: AuthApi) {
             AdminSubScreen.IMPORT -> null
             AdminSubScreen.LOGS -> null
             AdminSubScreen.ALL_EMPLOYEES -> null
+            AdminSubScreen.ADD_HOLIDAY -> null
             AdminSubScreen.EMPLOYEE_DETAIL -> AdminSubScreen.ALL_EMPLOYEES
             AdminSubScreen.ADD_EMPLOYEE -> AdminSubScreen.ALL_EMPLOYEES
             AdminSubScreen.EDIT_EMPLOYEE -> AdminSubScreen.EMPLOYEE_DETAIL
@@ -30,6 +31,13 @@ fun AdminScreen(authApi: AuthApi) {
     }
 
     when (currentSubScreen) {
+        AdminSubScreen.ADD_HOLIDAY -> {
+            AddHolidayScreen(
+                authApi = authApi,
+                onSuccess = { currentSubScreen = null },
+                onBack = { currentSubScreen = null }
+            )
+        }
         AdminSubScreen.IMPORT -> {
             Column(modifier = Modifier.fillMaxSize()) {
                 IconButton(
@@ -141,11 +149,18 @@ fun AdminScreen(authApi: AuthApi) {
                 ) {
                     Text("Import Employee")
                 }
+
+                Button(
+                    onClick = { currentSubScreen = AdminSubScreen.ADD_HOLIDAY },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Add Holiday")
+                }
             }
         }
     }
 }
 
 enum class AdminSubScreen {
-    IMPORT, LOGS, ALL_EMPLOYEES, EMPLOYEE_DETAIL, ADD_EMPLOYEE, EDIT_EMPLOYEE
+    IMPORT, LOGS, ALL_EMPLOYEES, EMPLOYEE_DETAIL, ADD_EMPLOYEE, EDIT_EMPLOYEE, ADD_HOLIDAY
 }
