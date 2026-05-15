@@ -510,6 +510,8 @@ suspend fun generateSheet(
             val month = calendar.get(Calendar.MONTH)
             val year = calendar.get(Calendar.YEAR)
             
+            val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            
             val filteredHistory = historyResponse.records.filter { record ->
                 val date = DateUtils.parseFlexibleDate(record.date)
                 if (date == null) return@filter false
@@ -534,33 +536,45 @@ suspend fun generateSheet(
                 cal.get(Calendar.MONTH) == month && cal.get(Calendar.YEAR) == year
             }
 
-            // Calculate Office Days
+            // Sets for unique days
+            val officeDaysSet = mutableSetOf<String>()
             val totalDays = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
-            var officeDays = 0
             for (i in 1..totalDays) {
                 val cal = (calendar.clone() as Calendar).apply { set(Calendar.DAY_OF_MONTH, i) }
+                val dayStr = sdf.format(cal.time)
                 val dayOfWeek = cal.get(Calendar.DAY_OF_WEEK)
                 val isWeekend = dayOfWeek == Calendar.FRIDAY
                 val isHoliday = filteredHolidays.any { h ->
                     val hDate = DateUtils.parseFlexibleDate(h.date)
-                    if (hDate == null) return@any false
-                    val hCal = Calendar.getInstance().apply { time = hDate }
-                    hCal.get(Calendar.DAY_OF_MONTH) == i
+                    hDate != null && sdf.format(hDate) == dayStr
                 }
-                if (!isWeekend && !isHoliday) officeDays++
+                if (!isWeekend && !isHoliday) officeDaysSet.add(dayStr)
             }
 
-            val presentCount = filteredHistory.size
-            val leaveCount = filteredLeaves.size
-            val absentCount = (officeDays - presentCount - leaveCount).coerceAtLeast(0)
+            val presentDaysSet = filteredHistory.mapNotNull { record ->
+                DateUtils.parseFlexibleDate(record.date)?.let { sdf.format(it) }
+            }.toSet()
+
+            val leaveDaysSet = filteredLeaves.mapNotNull { leave ->
+                DateUtils.parseFlexibleDate(leave.date)?.let { sdf.format(it) }
+            }.toSet()
+
+            val presentCount = presentDaysSet.size
+            val leaveCount = leaveDaysSet.size
+            val absentCount = (officeDaysSet - presentDaysSet - leaveDaysSet).size
             
-            val lateCount = filteredHistory.count { it.lateEntry != null }
+            // Group history by date string for per-day metrics
+            val historyByDate = filteredHistory.groupBy { record ->
+                DateUtils.parseFlexibleDate(record.date)?.let { sdf.format(it) }
+            }
+
+            val lateCount = historyByDate.values.count { records -> records.any { it.lateEntry != null } }
             val totalLateMinutes = filteredHistory.sumOf { it.lateEntry ?: 0 }
             val onTimeEntryCount = presentCount - lateCount
 
-            val earlyCount = filteredHistory.count { it.earlyExit != null }
+            val earlyCount = historyByDate.values.count { records -> records.any { it.earlyExit != null } }
             val totalOvertimeMinutes = filteredHistory.sumOf { it.overtime ?: 0 }
-            val onTimeExitCount = filteredHistory.count { it.exitTime != null && it.earlyExit == null }
+            val onTimeExitCount = historyByDate.values.count { records -> records.any { it.exitTime != null && it.earlyExit == null } }
 
             // Policy
             val policy = policyResponse.policy.find { p ->
@@ -586,7 +600,7 @@ suspend fun generateSheet(
                 AttendanceSheetData(
                     employee = employee,
                     month = SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(calendar.time),
-                    officeDays = officeDays,
+                    officeDays = officeDaysSet.size,
                     presentCount = presentCount,
                     absentCount = absentCount,
                     leaveCount = leaveCount,

@@ -386,6 +386,7 @@ suspend fun generateAtAGlance(
         if (history.success && holidays.success && policies.success && leaves.success && profiles.success) {
             val startMillis = startDate.timeInMillis
             val endMillis = endDate.timeInMillis
+            val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
 
             // Filter holidays in range
             val filteredHolidays = holidays.holidays.filter {
@@ -394,17 +395,16 @@ suspend fun generateAtAGlance(
             }
 
             // Calculate Office Days in range (Friday only weekend)
-            var officeDaysInRange = 0
+            val officeDaysSet = mutableSetOf<String>()
             val cal = startDate.clone() as Calendar
             while (cal.timeInMillis <= endMillis) {
+                val dayStr = sdf.format(cal.time)
                 val isWeekend = cal.get(Calendar.DAY_OF_WEEK) == Calendar.FRIDAY
                 val isHoliday = filteredHolidays.any { h ->
                     val hDate = DateUtils.parseFlexibleDate(h.date)
-                    val hCal = Calendar.getInstance().apply { time = hDate!! }
-                    hCal.get(Calendar.YEAR) == cal.get(Calendar.YEAR) &&
-                    hCal.get(Calendar.DAY_OF_YEAR) == cal.get(Calendar.DAY_OF_YEAR)
+                    hDate != null && sdf.format(hDate) == dayStr
                 }
-                if (!isWeekend && !isHoliday) officeDaysInRange++
+                if (!isWeekend && !isHoliday) officeDaysSet.add(dayStr)
                 cal.add(Calendar.DAY_OF_MONTH, 1)
             }
 
@@ -433,7 +433,18 @@ suspend fun generateAtAGlance(
                     endMin - startMin
                 } else 0
 
-                var presentCount = 0
+                val presentDaysSet = empHistory.mapNotNull { record ->
+                    DateUtils.parseFlexibleDate(record.date)?.let { sdf.format(it) }
+                }.toSet()
+
+                val leaveDaysSet = empLeaves.mapNotNull { leave ->
+                    DateUtils.parseFlexibleDate(leave.date)?.let { sdf.format(it) }
+                }.toSet()
+
+                val historyByDate = empHistory.groupBy { record ->
+                    DateUtils.parseFlexibleDate(record.date)?.let { sdf.format(it) }
+                }
+
                 var totalTimeMin = 0
                 var totalLateMin = 0
                 var totalOvertimeMin = 0
@@ -444,44 +455,66 @@ suspend fun generateAtAGlance(
                 var exitOkCount = 0
                 var earlyExitCount = 0
 
-                empHistory.forEach { record ->
-                    presentCount++
-                    val entry = parseIso(record.entryTime, dhakaZone)
-                    val exit = parseIso(record.exitTime, dhakaZone)
-                    
-                    if (entry != null && exit != null) {
-                        val duration = ((exit.time - entry.time) / (1000 * 60)).toInt()
-                        totalTimeMin += duration
-                        if (duration < requiredTimeMin) shortTimeCount++
-                        else if (duration >= requiredTimeMin) {
-                            requiredTimeCount++
-                            if (duration > requiredTimeMin) extraDayCount++
+                historyByDate.forEach { (date, records) ->
+                    // For metrics, we'll use cumulative values but count unique days for some
+                    var dayDuration = 0
+                    var dayLate = 0
+                    var dayOvertime = 0
+                    var isDayLate = false
+                    var hasExit = false
+                    var isEarlyExit = false
+
+                    records.forEach { record ->
+                        val entry = parseIso(record.entryTime, dhakaZone)
+                        val exit = parseIso(record.exitTime, dhakaZone)
+                        
+                        if (entry != null && exit != null) {
+                            dayDuration += ((exit.time - entry.time) / (1000 * 60)).toInt()
+                        }
+                        
+                        if (record.lateEntry != null) {
+                            isDayLate = true
+                            dayLate += record.lateEntry
+                        }
+                        
+                        if (record.exitTime != null) {
+                            hasExit = true
+                            if (record.earlyExit != null) {
+                                isEarlyExit = true
+                            }
+                        }
+                        
+                        if (record.overtime != null) {
+                            dayOvertime += record.overtime
                         }
                     }
+
+                    totalTimeMin += dayDuration
+                    totalLateMin += dayLate
+                    totalOvertimeMin += dayOvertime
                     
-                    if (record.lateEntry != null) {
-                        lateCount++
-                        totalLateMin += record.lateEntry
+                    if (dayDuration < requiredTimeMin) shortTimeCount++
+                    else if (dayDuration >= requiredTimeMin) {
+                        requiredTimeCount++
+                        if (dayDuration > requiredTimeMin) extraDayCount++
                     }
-                    
-                    if (record.exitTime != null) {
-                        if (record.earlyExit == null) exitOkCount++
-                        else earlyExitCount++
-                    }
-                    
-                    if (record.overtime != null) {
-                        totalOvertimeMin += record.overtime
+
+                    if (isDayLate) lateCount++
+                    if (hasExit) {
+                        if (isEarlyExit) earlyExitCount++
+                        else exitOkCount++
                     }
                 }
 
+                val presentCount = presentDaysSet.size
+                val leaveCount = leaveDaysSet.size
+                val absentCount = (officeDaysSet - presentDaysSet - leaveDaysSet).size
                 val avgTimeMin = if (presentCount > 0) totalTimeMin / presentCount else 0
-                val leaveCount = empLeaves.size
-                val absentCount = (officeDaysInRange - presentCount - leaveCount).coerceAtLeast(0)
 
                 AtAGlanceData(
                     position = emp.position,
                     name = emp.name,
-                    officeDays = officeDaysInRange,
+                    officeDays = officeDaysSet.size,
                     presentCount = presentCount,
                     avgTime = formatDuration(avgTimeMin),
                     leaveCount = leaveCount,
