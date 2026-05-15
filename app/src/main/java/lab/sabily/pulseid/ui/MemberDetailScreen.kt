@@ -19,7 +19,6 @@ import androidx.compose.ui.unit.dp
 import lab.sabily.pulseid.data.AuthApi
 import lab.sabily.pulseid.data.Employee
 import lab.sabily.pulseid.data.AttendanceRecord
-import lab.sabily.pulseid.data.WorkPolicy
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -33,7 +32,6 @@ fun MemberDetailScreen(
 ) {
     var employee by remember { mutableStateOf<Employee?>(null) }
     var history by remember { mutableStateOf<List<AttendanceRecord>>(emptyList()) }
-    var workPolicies by remember { mutableStateOf<List<WorkPolicy>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
@@ -55,12 +53,10 @@ fun MemberDetailScreen(
         isRefreshing = true
         try {
             val response = authApi.getMemberDetail(employeeId)
-            val policyResponse = authApi.getWorkPolicies()
             
-            if (response.success && policyResponse.success) {
+            if (response.success) {
                 employee = response.employee
                 history = response.history.sortedByDescending { it.date }
-                workPolicies = policyResponse.policy
             } else {
                 error = "Failed to fetch details"
             }
@@ -146,12 +142,8 @@ fun MemberDetailScreen(
                         }
                     } else {
                         items(history) { record ->
-                            val matchedPolicy = workPolicies.find { 
-                                record.date >= it.startDate && record.date <= it.endDate 
-                            }
                             AttendanceHistoryItem(
                                 record = record,
-                                policy = matchedPolicy,
                                 isoFormat = isoFormat,
                                 timeFormat = timeFormat,
                                 displayFormat = displayFormat,

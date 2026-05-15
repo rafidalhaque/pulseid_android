@@ -119,7 +119,9 @@ fun AddHolidayScreen(
                             )
                             val response = authApi.addHoliday(request)
                             if (response.success) {
-                                snackbarHostState.showSnackbar("Holiday added")
+                                launch {
+                                    snackbarHostState.showSnackbar("Holiday added")
+                                }
                                 onSuccess()
                             } else {
                                 snackbarHostState.showSnackbar(response.message ?: "Failed to add holiday")

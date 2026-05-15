@@ -18,7 +18,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import lab.sabily.pulseid.data.AttendanceRecord
 import lab.sabily.pulseid.data.AuthApi
-import lab.sabily.pulseid.data.WorkPolicy
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -27,7 +26,6 @@ import java.util.*
 fun AttendanceHistoryScreen(authApi: AuthApi, isAdmin: Boolean) {
     val scope = rememberCoroutineScope()
     var allRecords by remember { mutableStateOf<List<AttendanceRecord>>(emptyList()) }
-    var workPolicies by remember { mutableStateOf<List<WorkPolicy>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
 
@@ -55,11 +53,9 @@ fun AttendanceHistoryScreen(authApi: AuthApi, isAdmin: Boolean) {
         isRefreshing = true
         try {
             val historyResponse = authApi.getAttendanceHistory(all = if (showAllRecords) true else null)
-            val policyResponse = authApi.getWorkPolicies()
             
-            if (historyResponse.success && policyResponse.success) {
+            if (historyResponse.success) {
                 allRecords = historyResponse.records.sortedByDescending { it.date }
-                workPolicies = policyResponse.policy
             } else {
                 error = "Failed to fetch data"
             }
@@ -156,10 +152,7 @@ fun AttendanceHistoryScreen(authApi: AuthApi, isAdmin: Boolean) {
                     contentPadding = PaddingValues(bottom = 16.dp)
                 ) {
                     items(filteredRecords) { record ->
-                        val matchedPolicy = workPolicies.find { 
-                            record.date >= it.startDate && record.date <= it.endDate 
-                        }
-                        AttendanceHistoryItem(record, matchedPolicy, isoFormat, timeFormat, displayFormat, dateFormat)
+                        AttendanceHistoryItem(record, isoFormat, timeFormat, displayFormat, dateFormat)
                     }
                 }
             }
@@ -232,7 +225,6 @@ fun FilterButton(
 @Composable
 fun AttendanceHistoryItem(
     record: AttendanceRecord,
-    policy: WorkPolicy?,
     isoFormat: SimpleDateFormat,
     timeFormat: SimpleDateFormat,
     displayFormat: SimpleDateFormat,
@@ -268,9 +260,11 @@ fun AttendanceHistoryItem(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
+            // Date Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 val date = try { dateFormat.parse(record.date) } catch (e: Exception) { null }
                 Text(
@@ -279,118 +273,62 @@ fun AttendanceHistoryItem(
                     fontWeight = FontWeight.Bold
                 )
 
-                // Duration
-                val durationText = if (record.exitTime == null) {
-                    "Still In Office"
-                } else if (record.entryTime == null) {
-                    "N/A"
-                } else {
-                    val entry = parseTime(record.entryTime)
-                    val exit = parseTime(record.exitTime)
-                    if (entry != null && exit != null) {
-                        val diff = exit.time - entry.time
-                        val hours = diff / (1000 * 60 * 60)
-                        val minutes = (diff / (1000 * 60)) % 60
-                        "${hours}h ${minutes}m"
-                    } else "N/A"
+                if (record.employeeName != null) {
+                    Text(
+                        text = record.employeeName!!,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
                 }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Entry Row
+            val entryDate = parseTime(record.entryTime)
+            val entryTimeStr = entryDate?.let { timeFormat.format(it) } ?: record.entryTime ?: "--:--"
+            Text(text = "Entry: $entryTimeStr", style = MaterialTheme.typography.bodyLarge)
+            if (record.lateEntry != null) {
                 Text(
-                    text = durationText,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = if (record.exitTime == null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                    text = "Late ${record.lateEntry}m",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.Red,
+                    fontWeight = FontWeight.Bold
                 )
             }
 
-            if (record.employeeName != null) {
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Exit Row
+            if (record.exitTime == null) {
                 Text(
-                    text = record.employeeName!!,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.padding(bottom = 8.dp)
+                    text = "Still In Office",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold
                 )
+            } else {
+                val exitDate = parseTime(record.exitTime)
+                val exitTimeStr = exitDate?.let { timeFormat.format(it) } ?: record.exitTime ?: "--:--"
+                Text(text = "Exit: $exitTimeStr", style = MaterialTheme.typography.bodyLarge)
+                if (record.earlyExit != null) {
+                    Text(
+                        text = "Early ${record.earlyExit}m",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color(0xFFFFA500),
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
 
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                Column {
-                    Text(text = "Entry", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-                    val entryDate = parseTime(record.entryTime)
-                    val entryTimeStr = entryDate?.let { timeFormat.format(it) } ?: record.entryTime ?: "--:--"
-                    Text(text = entryTimeStr, style = MaterialTheme.typography.bodyLarge)
-
-                    if (policy != null && entryDate != null) {
-                        val zone = isoFormat.timeZone
-                        val policyStart = policy.officeStart.split(":")
-                        val startHour = policyStart[0].toInt()
-                        val startMin = policyStart[1].toInt()
-
-                        val entryCal = Calendar.getInstance(zone).apply { time = entryDate }
-                        val scheduledStartCal = Calendar.getInstance(zone).apply {
-                            time = entryDate
-                            set(Calendar.HOUR_OF_DAY, startHour)
-                            set(Calendar.MINUTE, startMin)
-                            set(Calendar.SECOND, 0)
-                            set(Calendar.MILLISECOND, 0)
-                        }
-
-                        val lateThreshold = scheduledStartCal.timeInMillis + (policy.lateMinutes * 60 * 1000)
-                        if (entryCal.timeInMillis > lateThreshold) {
-                            val lateDiff = entryCal.timeInMillis - scheduledStartCal.timeInMillis
-                            val lateMins = lateDiff / (60 * 1000)
-                            Text(
-                                text = "Late Entry: ${lateMins}m",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color.Red,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-                }
-
-                Column {
-                    Text(text = "Exit", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-                    val exitDate = parseTime(record.exitTime)
-                    val exitTimeStr = exitDate?.let { timeFormat.format(it) } ?: record.exitTime ?: "--:--"
-                    Text(text = exitTimeStr, style = MaterialTheme.typography.bodyLarge)
-
-                    if (policy != null && exitDate != null) {
-                        val zone = isoFormat.timeZone
-                        val policyEnd = policy.officeEnd.split(":")
-                        val endHour = policyEnd[0].toInt()
-                        val endMin = policyEnd[1].toInt()
-
-                        val exitCal = Calendar.getInstance(zone).apply { time = exitDate }
-                        val scheduledEndCal = Calendar.getInstance(zone).apply {
-                            time = exitDate
-                            set(Calendar.HOUR_OF_DAY, endHour)
-                            set(Calendar.MINUTE, endMin)
-                            set(Calendar.SECOND, 0)
-                            set(Calendar.MILLISECOND, 0)
-                        }
-
-                        val earlyThreshold = scheduledEndCal.timeInMillis - (policy.earlyMinutes * 60 * 1000)
-                        if (exitCal.timeInMillis < earlyThreshold) {
-                            val earlyDiff = scheduledEndCal.timeInMillis - exitCal.timeInMillis
-                            val earlyMins = earlyDiff / (60 * 1000)
-                            Text(
-                                text = "Early Exit: ${earlyMins}m",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color(0xFFFFA500),
-                                fontWeight = FontWeight.Bold
-                            )
-                        } else if (exitCal.timeInMillis > scheduledEndCal.timeInMillis) {
-                            val otDiff = exitCal.timeInMillis - scheduledEndCal.timeInMillis
-                            val otMins = otDiff / (60 * 1000)
-                            if (otMins > 0) {
-                                Text(
-                                    text = "Overtime: ${otMins}m",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Color(0xFF4CAF50),
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-                    }
-                }
+            // Overtime Row
+            if (record.overtime != null) {
+                Text(
+                    text = "Overtime ${record.overtime}m",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color(0xFF4CAF50),
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }
