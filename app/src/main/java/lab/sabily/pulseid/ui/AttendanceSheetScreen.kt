@@ -550,7 +550,7 @@ suspend fun generateSheet(
             for (i in 1..totalDays) {
                 val cal = (calendar.clone() as Calendar).apply { set(Calendar.DAY_OF_MONTH, i) }
                 val dayOfWeek = cal.get(Calendar.DAY_OF_WEEK)
-                val isWeekend = dayOfWeek == Calendar.SATURDAY || dayOfWeek == Calendar.SUNDAY
+                val isWeekend = dayOfWeek == Calendar.FRIDAY
                 val isHoliday = filteredHolidays.any { h ->
                     val hDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(h.date)
                     val hCal = Calendar.getInstance().apply { time = hDate!! }
@@ -684,13 +684,15 @@ suspend fun exportToPdf(context: Context, data: AttendanceSheetData) {
             document.add(summaryTable)
 
             document.add(Paragraph("\nDaily Records", boldFont))
-            val table = PdfPTable(5)
+            val table = PdfPTable(7)
             table.widthPercentage = 100f
             table.addCell("Date")
             table.addCell("Entry")
             table.addCell("Exit")
             table.addCell("Duration")
-            table.addCell("Status")
+            table.addCell("Late(min)")
+            table.addCell("Early(min)")
+            table.addCell("OT(min)")
 
             data.dailyRecords.forEach { record ->
                 val dhakaZone = TimeZone.getTimeZone("Asia/Dhaka")
@@ -720,12 +722,9 @@ suspend fun exportToPdf(context: Context, data: AttendanceSheetData) {
                 table.addCell(record.entryTime?.substringAfter("T")?.substringBefore(".") ?: "--:--")
                 table.addCell(record.exitTime?.substringAfter("T")?.substringBefore(".") ?: "--:--")
                 table.addCell(durationStr) 
-                
-                var status = ""
-                if (record.lateEntry != null) status += "Late "
-                if (record.earlyExit != null) status += "Early "
-                if (record.overtime != null) status += "OT "
-                table.addCell(status.trim())
+                table.addCell((record.lateEntry ?: 0).toString())
+                table.addCell((record.earlyExit ?: 0).toString())
+                table.addCell((record.overtime ?: 0).toString())
             }
             document.add(table)
             document.close()
