@@ -3,6 +3,7 @@ package lab.sabily.pulseid.ui
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -565,12 +566,20 @@ fun parseIso(s: String?, zone: TimeZone): Date? {
 fun formatDate(cal: Calendar): String = SimpleDateFormat("dd MMM, yyyy", Locale.getDefault()).format(cal.time)
 
 suspend fun exportAtAGlancePdf(context: Context, dataList: List<AtAGlanceData>, dateRange: String) {
+    withContext(Dispatchers.Main) {
+        Toast.makeText(context, "Generating PDF...", Toast.LENGTH_SHORT).show()
+    }
     withContext(Dispatchers.IO) {
         try {
             val sanitizedDateRange = dateRange.replace(Regex("[^a-zA-Z0-9._-]"), "_")
             val fileName = "At_A_Glance_${sanitizedDateRange}.pdf"
             val dir = context.getExternalFilesDir(null)
-            if (dir == null) return@withContext
+            if (dir == null) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "External storage not available", Toast.LENGTH_LONG).show()
+                }
+                return@withContext
+            }
             val file = File(dir, fileName)
             val document = Document(PageSize.A4.rotate()) // Landscape
             PdfWriter.getInstance(document, FileOutputStream(file))
@@ -623,17 +632,28 @@ suspend fun exportAtAGlancePdf(context: Context, dataList: List<AtAGlanceData>, 
             }
         } catch (e: Throwable) {
             e.printStackTrace()
+            withContext(Dispatchers.Main) {
+                Toast.makeText(context, "PDF Error: ${e.message}", Toast.LENGTH_LONG).show()
+            }
         }
     }
 }
 
 suspend fun exportAtAGlanceCsv(context: Context, dataList: List<AtAGlanceData>, dateRange: String) {
+    withContext(Dispatchers.Main) {
+        Toast.makeText(context, "Generating CSV...", Toast.LENGTH_SHORT).show()
+    }
     withContext(Dispatchers.IO) {
         try {
             val sanitizedDateRange = dateRange.replace(Regex("[^a-zA-Z0-9._-]"), "_")
             val fileName = "At_A_Glance_${sanitizedDateRange}.csv"
             val dir = context.getExternalFilesDir(null)
-            if (dir == null) return@withContext
+            if (dir == null) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "External storage not available", Toast.LENGTH_LONG).show()
+                }
+                return@withContext
+            }
             val file = File(dir, fileName)
             val writer = FileOutputStream(file).bufferedWriter()
 
@@ -662,6 +682,9 @@ suspend fun exportAtAGlanceCsv(context: Context, dataList: List<AtAGlanceData>, 
             }
         } catch (e: Throwable) {
             e.printStackTrace()
+            withContext(Dispatchers.Main) {
+                Toast.makeText(context, "CSV Error: ${e.message}", Toast.LENGTH_LONG).show()
+            }
         }
     }
 }

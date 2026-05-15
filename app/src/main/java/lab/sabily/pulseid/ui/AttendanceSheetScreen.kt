@@ -1,8 +1,10 @@
 package lab.sabily.pulseid.ui
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -650,6 +652,9 @@ data class AttendanceSheetData(
 )
 
 suspend fun exportToPdf(context: Context, data: AttendanceSheetData) {
+    withContext(Dispatchers.Main) {
+        Toast.makeText(context, "Generating PDF...", Toast.LENGTH_SHORT).show()
+    }
     withContext(Dispatchers.IO) {
         try {
             val sanitizedEmployeeName = data.employee.name.replace(Regex("[^a-zA-Z0-9._-]"), "_")
@@ -657,7 +662,12 @@ suspend fun exportToPdf(context: Context, data: AttendanceSheetData) {
             val fileName = "Attendance_${sanitizedEmployeeName}_${sanitizedMonth}.pdf"
             
             val dir = context.getExternalFilesDir(null)
-            if (dir == null) return@withContext
+            if (dir == null) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "External storage not available", Toast.LENGTH_LONG).show()
+                }
+                return@withContext
+            }
             val file = File(dir, fileName)
             
             val document = Document(PageSize.A4)
@@ -716,11 +726,17 @@ suspend fun exportToPdf(context: Context, data: AttendanceSheetData) {
             }
         } catch (e: Throwable) {
             e.printStackTrace()
+            withContext(Dispatchers.Main) {
+                Toast.makeText(context, "PDF Error: ${e.message}", Toast.LENGTH_LONG).show()
+            }
         }
     }
 }
 
 suspend fun exportToCsv(context: Context, data: AttendanceSheetData) {
+    withContext(Dispatchers.Main) {
+        Toast.makeText(context, "Generating CSV...", Toast.LENGTH_SHORT).show()
+    }
     withContext(Dispatchers.IO) {
         try {
             val sanitizedEmployeeName = data.employee.name.replace(Regex("[^a-zA-Z0-9._-]"), "_")
@@ -728,7 +744,12 @@ suspend fun exportToCsv(context: Context, data: AttendanceSheetData) {
             val fileName = "Attendance_${sanitizedEmployeeName}_${sanitizedMonth}.csv"
             
             val dir = context.getExternalFilesDir(null)
-            if (dir == null) return@withContext
+            if (dir == null) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "External storage not available", Toast.LENGTH_LONG).show()
+                }
+                return@withContext
+            }
             val file = File(dir, fileName)
             val writer = FileOutputStream(file).bufferedWriter()
 
@@ -764,12 +785,19 @@ suspend fun exportToCsv(context: Context, data: AttendanceSheetData) {
             }
         } catch (e: Throwable) {
             e.printStackTrace()
+            withContext(Dispatchers.Main) {
+                Toast.makeText(context, "CSV Error: ${e.message}", Toast.LENGTH_LONG).show()
+            }
         }
     }
 }
 
 fun shareFile(context: Context, file: File, type: String) {
     try {
+        if (!file.exists()) {
+            Toast.makeText(context, "File was not created", Toast.LENGTH_SHORT).show()
+            return
+        }
         val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
         val intent = Intent(Intent.ACTION_SEND).apply {
             this.type = type
@@ -777,9 +805,12 @@ fun shareFile(context: Context, file: File, type: String) {
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
         val chooser = Intent.createChooser(intent, "Share Attendance Sheet")
-        chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        if (context !is Activity) {
+            chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
         context.startActivity(chooser)
     } catch (e: Exception) {
         e.printStackTrace()
+        Toast.makeText(context, "Share Error: ${e.message}", Toast.LENGTH_LONG).show()
     }
 }
