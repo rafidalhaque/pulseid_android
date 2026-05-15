@@ -22,12 +22,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
-import com.itextpdf.kernel.pdf.PdfDocument
-import com.itextpdf.kernel.pdf.PdfWriter
-import com.itextpdf.layout.Document
-import com.itextpdf.layout.element.Paragraph
-import com.itextpdf.layout.element.Table
-import com.itextpdf.layout.property.UnitValue
+import com.lowagie.text.Document
+import com.lowagie.text.Element
+import com.lowagie.text.FontFactory
+import com.lowagie.text.Paragraph
+import com.lowagie.text.pdf.PdfPTable
+import com.lowagie.text.pdf.PdfWriter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -662,16 +662,20 @@ suspend fun exportToPdf(context: Context, data: AttendanceSheetData) {
         try {
             val fileName = "Attendance_${data.employee.name.replace(" ", "_")}_${data.month.replace(" ", "_")}.pdf"
             val file = File(context.getExternalFilesDir(null), fileName)
-            val writer = PdfWriter(FileOutputStream(file))
-            val pdf = PdfDocument(writer)
-            val document = Document(pdf)
+            val document = Document()
+            PdfWriter.getInstance(document, FileOutputStream(file))
+            document.open()
 
-            document.add(Paragraph("Monthly Attendance Sheet").setFontSize(20f).setBold())
-            document.add(Paragraph("Employee: ${data.employee.name}"))
-            document.add(Paragraph("Month: ${data.month}"))
-            document.add(Paragraph("\nSummary"))
+            val boldFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18f)
+            val normalFont = FontFactory.getFont(FontFactory.HELVETICA, 12f)
+
+            document.add(Paragraph("Monthly Attendance Sheet", boldFont))
+            document.add(Paragraph("Employee: ${data.employee.name}", normalFont))
+            document.add(Paragraph("Month: ${data.month}", normalFont))
+            document.add(Paragraph("\nSummary", boldFont))
             
-            val summaryTable = Table(UnitValue.createPointArray(floatArrayOf(100f, 100f)))
+            val summaryTable = PdfPTable(2)
+            summaryTable.widthPercentage = 100f
             summaryTable.addCell("Office Days"); summaryTable.addCell(data.officeDays.toString())
             summaryTable.addCell("Present"); summaryTable.addCell(data.presentCount.toString())
             summaryTable.addCell("Absent"); summaryTable.addCell(data.absentCount.toString())
@@ -679,13 +683,14 @@ suspend fun exportToPdf(context: Context, data: AttendanceSheetData) {
             summaryTable.addCell("Holiday"); summaryTable.addCell(data.holidayCount.toString())
             document.add(summaryTable)
 
-            document.add(Paragraph("\nDaily Records"))
-            val table = Table(UnitValue.createPointArray(floatArrayOf(80f, 80f, 80f, 80f, 100f)))
-            table.addHeaderCell("Date")
-            table.addHeaderCell("Entry")
-            table.addHeaderCell("Exit")
-            table.addHeaderCell("Duration")
-            table.addHeaderCell("Status")
+            document.add(Paragraph("\nDaily Records", boldFont))
+            val table = PdfPTable(5)
+            table.widthPercentage = 100f
+            table.addCell("Date")
+            table.addCell("Entry")
+            table.addCell("Exit")
+            table.addCell("Duration")
+            table.addCell("Status")
 
             data.dailyRecords.forEach { record ->
                 table.addCell(record.date)
@@ -693,7 +698,7 @@ suspend fun exportToPdf(context: Context, data: AttendanceSheetData) {
                 table.addCell(record.exitTime?.substringAfter("T")?.substringBefore(".") ?: "--:--")
                 
                 // Duration calculation for PDF
-                table.addCell("--") // Simplified for brevity in basic export
+                table.addCell("--") 
                 
                 var status = ""
                 if (record.lateEntry != null) status += "Late "

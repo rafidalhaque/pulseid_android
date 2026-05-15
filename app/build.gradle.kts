@@ -14,8 +14,8 @@ android {
         applicationId = "lab.sabily.pulseid"
         minSdk = 26
         targetSdk = 36
-        versionCode = 55
-        versionName = "1.13.0"
+        versionCode = 56
+        versionName = "1.13.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -54,7 +54,7 @@ dependencies {
     implementation(libs.okhttp.logging)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
-    implementation(libs.itext7.core)
+    implementation(libs.openpdf)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
