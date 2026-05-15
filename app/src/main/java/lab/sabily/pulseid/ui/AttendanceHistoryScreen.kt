@@ -55,7 +55,7 @@ fun AttendanceHistoryScreen(authApi: AuthApi, isAdmin: Boolean) {
             val historyResponse = authApi.getAttendanceHistory(all = if (showAllRecords) true else null)
             
             if (historyResponse.success) {
-                allRecords = historyResponse.records.sortedByDescending { it.date }
+                allRecords = historyResponse.records.sortedBy { it.date }
             } else {
                 error = "Failed to fetch data"
             }
@@ -281,13 +281,31 @@ fun AttendanceHistoryItem(
                     fontWeight = FontWeight.Bold
                 )
 
-                if (record.employeeName != null) {
-                    Text(
-                        text = record.employeeName!!,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.secondary
-                    )
-                }
+                val entry = parseTime(record.entryTime)
+                val exit = parseTime(record.exitTime)
+                val durationText = if (record.exitTime == null) {
+                    "Still In Office"
+                } else if (entry != null && exit != null) {
+                    val diff = exit.time - entry.time
+                    val hours = diff / (1000 * 60 * 60)
+                    val minutes = (diff / (1000 * 60)) % 60
+                    "${hours}h ${minutes}m"
+                } else "N/A"
+
+                Text(
+                    text = durationText,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = if (record.exitTime == null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            if (record.employeeName != null) {
+                Text(
+                    text = record.employeeName!!,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
             }
 
             Spacer(modifier = Modifier.height(8.dp))

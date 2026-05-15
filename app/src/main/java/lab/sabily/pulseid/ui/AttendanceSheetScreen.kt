@@ -693,12 +693,33 @@ suspend fun exportToPdf(context: Context, data: AttendanceSheetData) {
             table.addCell("Status")
 
             data.dailyRecords.forEach { record ->
+                val dhakaZone = TimeZone.getTimeZone("Asia/Dhaka")
+                val parse = { s: String? ->
+                    if (s == null) null else {
+                        val formats = listOf(
+                            "yyyy-MM-dd'T'HH:mm:ss", "yyyy-MM-dd'T'HH:mm:ss.SSSSSS", "yyyy-MM-dd'T'HH:mm:ss.SSS",
+                            "yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd HH:mm:ss.SSSSSS", "yyyy-MM-dd HH:mm:ss.SSS"
+                        )
+                        var d: Date? = null
+                        for (f in formats) {
+                            try { d = SimpleDateFormat(f, Locale.getDefault()).apply { timeZone = dhakaZone }.parse(s); if (d != null) break } catch (e: Exception) {}
+                        }
+                        d
+                    }
+                }
+                val entry = parse(record.entryTime)
+                val exit = parse(record.exitTime)
+                val durationStr = if (entry != null && exit != null) {
+                    val diff = (exit.time - entry.time) / (1000 * 60)
+                    formatDuration(diff.toInt())
+                } else if (record.exitTime == null) {
+                    "Still In"
+                } else "--"
+
                 table.addCell(record.date)
                 table.addCell(record.entryTime?.substringAfter("T")?.substringBefore(".") ?: "--:--")
                 table.addCell(record.exitTime?.substringAfter("T")?.substringBefore(".") ?: "--:--")
-                
-                // Duration calculation for PDF
-                table.addCell("--") 
+                table.addCell(durationStr) 
                 
                 var status = ""
                 if (record.lateEntry != null) status += "Late "
@@ -735,9 +756,32 @@ suspend fun exportToCsv(context: Context, data: AttendanceSheetData) {
             writer.write("Holiday,${data.holidayCount}\n\n")
 
             writer.write("Daily Records\n")
-            writer.write("Date,Entry,Exit,Late(min),Early(min),OT(min)\n")
+            writer.write("Date,Entry,Exit,Duration,Late(min),Early(min),OT(min)\n")
             data.dailyRecords.forEach { record ->
-                writer.write("${record.date},${record.entryTime ?: ""},${record.exitTime ?: ""},${record.lateEntry ?: 0},${record.earlyExit ?: 0},${record.overtime ?: 0}\n")
+                val dhakaZone = TimeZone.getTimeZone("Asia/Dhaka")
+                val parse = { s: String? ->
+                    if (s == null) null else {
+                        val formats = listOf(
+                            "yyyy-MM-dd'T'HH:mm:ss", "yyyy-MM-dd'T'HH:mm:ss.SSSSSS", "yyyy-MM-dd'T'HH:mm:ss.SSS",
+                            "yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd HH:mm:ss.SSSSSS", "yyyy-MM-dd HH:mm:ss.SSS"
+                        )
+                        var d: Date? = null
+                        for (f in formats) {
+                            try { d = SimpleDateFormat(f, Locale.getDefault()).apply { timeZone = dhakaZone }.parse(s); if (d != null) break } catch (e: Exception) {}
+                        }
+                        d
+                    }
+                }
+                val entry = parse(record.entryTime)
+                val exit = parse(record.exitTime)
+                val durationStr = if (entry != null && exit != null) {
+                    val diff = (exit.time - entry.time) / (1000 * 60)
+                    formatDuration(diff.toInt())
+                } else if (record.exitTime == null) {
+                    "Still In"
+                } else "--"
+
+                writer.write("${record.date},${record.entryTime ?: ""},${record.exitTime ?: ""},$durationStr,${record.lateEntry ?: 0},${record.earlyExit ?: 0},${record.overtime ?: 0}\n")
             }
             writer.close()
 
