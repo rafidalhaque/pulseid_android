@@ -255,6 +255,14 @@ fun AttendanceHistoryItem(
         }
     }
 
+    val formatMinutes = { totalMinutes: Int? ->
+        if (totalMinutes == null) "" else {
+            val hours = totalMinutes / 60
+            val minutes = totalMinutes % 60
+            String.format("%02d:%02d", hours, minutes)
+        }
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -290,7 +298,7 @@ fun AttendanceHistoryItem(
             Text(text = "Entry: $entryTimeStr", style = MaterialTheme.typography.bodyLarge)
             if (record.lateEntry != null) {
                 Text(
-                    text = "Late ${record.lateEntry}m",
+                    text = "Late ${formatMinutes(record.lateEntry)}",
                     style = MaterialTheme.typography.labelSmall,
                     color = Color.Red,
                     fontWeight = FontWeight.Bold
@@ -313,7 +321,7 @@ fun AttendanceHistoryItem(
                 Text(text = "Exit: $exitTimeStr", style = MaterialTheme.typography.bodyLarge)
                 if (record.earlyExit != null) {
                     Text(
-                        text = "Early ${record.earlyExit}m",
+                        text = "Early ${formatMinutes(record.earlyExit)}",
                         style = MaterialTheme.typography.labelSmall,
                         color = Color(0xFFFFA500),
                         fontWeight = FontWeight.Bold
@@ -324,7 +332,7 @@ fun AttendanceHistoryItem(
             // Overtime Row
             if (record.overtime != null) {
                 Text(
-                    text = "Overtime ${record.overtime}m",
+                    text = "Overtime ${formatMinutes(record.overtime)}",
                     style = MaterialTheme.typography.labelSmall,
                     color = Color(0xFF4CAF50),
                     fontWeight = FontWeight.Bold
