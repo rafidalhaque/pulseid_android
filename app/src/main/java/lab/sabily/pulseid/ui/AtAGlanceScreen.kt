@@ -605,7 +605,7 @@ suspend fun exportAtAGlanceCsv(context: Context, dataList: List<AtAGlanceData>, 
             val writer = FileOutputStream(file).bufferedWriter()
 
             writer.write("At A Glance Attendance Sheet\n")
-            writer.write("Date Range,$dateRange\n\n")
+            writer.write("Date Range,\"$dateRange\"\n\n")
             
             val headers = listOf(
                 "Position", "Name", "Office Days", "Total Present", "Avg Time", "Leave", "Absent", "Holiday",

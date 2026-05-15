@@ -741,7 +741,7 @@ suspend fun exportToCsv(context: Context, data: AttendanceSheetData) {
                     "Still In"
                 } else "--"
 
-                writer.write("${record.date},${record.entryTime ?: ""},${record.exitTime ?: ""},$durationStr,${record.lateEntry ?: 0},${record.earlyExit ?: 0},${record.overtime ?: 0}\n")
+                writer.write("\"${record.date}\",${record.entryTime ?: ""},${record.exitTime ?: ""},$durationStr,${record.lateEntry ?: 0},${record.earlyExit ?: 0},${record.overtime ?: 0}\n")
             }
             writer.close()
 
