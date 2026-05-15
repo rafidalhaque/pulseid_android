@@ -370,8 +370,6 @@ suspend fun generateAtAGlance(
     onLoading(true)
     try {
         val dhakaZone = TimeZone.getTimeZone("Asia/Dhaka")
-        val isoFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).apply { timeZone = dhakaZone }
-        val dateParser = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).apply { timeZone = dhakaZone }
 
         val historyDeferred = withContext(Dispatchers.IO) { async { authApi.getAttendanceHistory(all = true) } }
         val holidayDeferred = withContext(Dispatchers.IO) { async { authApi.getHolidays() } }
@@ -391,7 +389,7 @@ suspend fun generateAtAGlance(
 
             // Filter holidays in range
             val filteredHolidays = holidays.holidays.filter {
-                val d = dateParser.parse(it.date)?.time ?: 0L
+                val d = DateUtils.parseFlexibleDate(it.date)?.time ?: 0L
                 d in startMillis..endMillis
             }
 
@@ -401,7 +399,7 @@ suspend fun generateAtAGlance(
             while (cal.timeInMillis <= endMillis) {
                 val isWeekend = cal.get(Calendar.DAY_OF_WEEK) == Calendar.FRIDAY
                 val isHoliday = filteredHolidays.any { h ->
-                    val hDate = dateParser.parse(h.date)
+                    val hDate = DateUtils.parseFlexibleDate(h.date)
                     val hCal = Calendar.getInstance().apply { time = hDate!! }
                     hCal.get(Calendar.YEAR) == cal.get(Calendar.YEAR) &&
                     hCal.get(Calendar.DAY_OF_YEAR) == cal.get(Calendar.DAY_OF_YEAR)
@@ -412,18 +410,18 @@ suspend fun generateAtAGlance(
 
             val resultList = profiles.employee.map { emp ->
                 val empHistory = history.records.filter {
-                    val d = dateParser.parse(it.date)?.time ?: 0L
+                    val d = DateUtils.parseFlexibleDate(it.date)?.time ?: 0L
                     it.employeeId == emp.id && d in startMillis..endMillis
                 }
                 val empLeaves = leaves.body.filter {
-                    val d = dateParser.parse(it.date)?.time ?: 0L
+                    val d = DateUtils.parseFlexibleDate(it.date)?.time ?: 0L
                     it.employeeId == emp.id && d in startMillis..endMillis && it.isApproved == "Approved"
                 }
 
                 // Match policy for the range (using first day of range as reference)
                 val policy = policies.policy.find { p ->
-                    val pStart = dateParser.parse(p.startDate)?.time ?: 0L
-                    val pEnd = dateParser.parse(p.endDate)?.time ?: 0L
+                    val pStart = DateUtils.parseFlexibleDate(p.startDate)?.time ?: 0L
+                    val pEnd = DateUtils.parseFlexibleDate(p.endDate)?.time ?: 0L
                     startMillis in pStart..pEnd
                 } ?: policies.policy.lastOrNull()
 
@@ -536,8 +534,11 @@ fun formatDate(cal: Calendar): String = SimpleDateFormat("dd MMM, yyyy", Locale.
 suspend fun exportAtAGlancePdf(context: Context, dataList: List<AtAGlanceData>, dateRange: String) {
     withContext(Dispatchers.IO) {
         try {
-            val fileName = "At_A_Glance_${dateRange.replace(" ", "_").replace(",", "")}.pdf"
-            val file = File(context.getExternalFilesDir(null), fileName)
+            val sanitizedDateRange = dateRange.replace(Regex("[^a-zA-Z0-9._-]"), "_")
+            val fileName = "At_A_Glance_${sanitizedDateRange}.pdf"
+            val dir = context.getExternalFilesDir(null)
+            if (dir == null) return@withContext
+            val file = File(dir, fileName)
             val document = Document(PageSize.A4.rotate()) // Landscape
             PdfWriter.getInstance(document, FileOutputStream(file))
             document.open()
@@ -584,8 +585,10 @@ suspend fun exportAtAGlancePdf(context: Context, dataList: List<AtAGlanceData>, 
             document.add(table)
             document.close()
 
-            shareFile(context, file, "application/pdf")
-        } catch (e: Exception) {
+            withContext(Dispatchers.Main) {
+                shareFile(context, file, "application/pdf")
+            }
+        } catch (e: Throwable) {
             e.printStackTrace()
         }
     }
@@ -594,8 +597,11 @@ suspend fun exportAtAGlancePdf(context: Context, dataList: List<AtAGlanceData>, 
 suspend fun exportAtAGlanceCsv(context: Context, dataList: List<AtAGlanceData>, dateRange: String) {
     withContext(Dispatchers.IO) {
         try {
-            val fileName = "At_A_Glance_${dateRange.replace(" ", "_").replace(",", "")}.csv"
-            val file = File(context.getExternalFilesDir(null), fileName)
+            val sanitizedDateRange = dateRange.replace(Regex("[^a-zA-Z0-9._-]"), "_")
+            val fileName = "At_A_Glance_${sanitizedDateRange}.csv"
+            val dir = context.getExternalFilesDir(null)
+            if (dir == null) return@withContext
+            val file = File(dir, fileName)
             val writer = FileOutputStream(file).bufferedWriter()
 
             writer.write("At A Glance Attendance Sheet\n")
@@ -618,8 +624,10 @@ suspend fun exportAtAGlanceCsv(context: Context, dataList: List<AtAGlanceData>, 
             }
             writer.close()
 
-            shareFile(context, file, "text/csv")
-        } catch (e: Exception) {
+            withContext(Dispatchers.Main) {
+                shareFile(context, file, "text/csv")
+            }
+        } catch (e: Throwable) {
             e.printStackTrace()
         }
     }

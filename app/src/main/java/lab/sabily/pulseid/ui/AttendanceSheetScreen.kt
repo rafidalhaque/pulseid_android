@@ -25,6 +25,7 @@ import androidx.core.content.FileProvider
 import com.lowagie.text.Document
 import com.lowagie.text.Element
 import com.lowagie.text.FontFactory
+import com.lowagie.text.PageSize
 import com.lowagie.text.Paragraph
 import com.lowagie.text.pdf.PdfPTable
 import com.lowagie.text.pdf.PdfWriter
@@ -637,14 +638,22 @@ data class AttendanceSheetData(
 suspend fun exportToPdf(context: Context, data: AttendanceSheetData) {
     withContext(Dispatchers.IO) {
         try {
-            val fileName = "Attendance_${data.employee.name.replace(" ", "_")}_${data.month.replace(" ", "_")}.pdf"
-            val file = File(context.getExternalFilesDir(null), fileName)
-            val document = Document()
+            val sanitizedEmployeeName = data.employee.name.replace(Regex("[^a-zA-Z0-9._-]"), "_")
+            val sanitizedMonth = data.month.replace(Regex("[^a-zA-Z0-9._-]"), "_")
+            val fileName = "Attendance_${sanitizedEmployeeName}_${sanitizedMonth}.pdf"
+            
+            val dir = context.getExternalFilesDir(null)
+            if (dir == null) return@withContext
+            val file = File(dir, fileName)
+            
+            val document = Document(PageSize.A4)
             PdfWriter.getInstance(document, FileOutputStream(file))
             document.open()
 
             val boldFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18f)
             val normalFont = FontFactory.getFont(FontFactory.HELVETICA, 12f)
+            val headerFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10f)
+            val cellFont = FontFactory.getFont(FontFactory.HELVETICA, 10f)
 
             document.add(Paragraph("Monthly Attendance Sheet", boldFont))
             document.add(Paragraph("Employee: ${data.employee.name}", normalFont))
@@ -653,23 +662,19 @@ suspend fun exportToPdf(context: Context, data: AttendanceSheetData) {
             
             val summaryTable = PdfPTable(2)
             summaryTable.widthPercentage = 100f
-            summaryTable.addCell("Office Days"); summaryTable.addCell(data.officeDays.toString())
-            summaryTable.addCell("Present"); summaryTable.addCell(data.presentCount.toString())
-            summaryTable.addCell("Absent"); summaryTable.addCell(data.absentCount.toString())
-            summaryTable.addCell("Leave"); summaryTable.addCell(data.leaveCount.toString())
-            summaryTable.addCell("Holiday"); summaryTable.addCell(data.holidayCount.toString())
+            summaryTable.addCell(Paragraph("Office Days", cellFont)); summaryTable.addCell(Paragraph(data.officeDays.toString(), cellFont))
+            summaryTable.addCell(Paragraph("Present", cellFont)); summaryTable.addCell(Paragraph(data.presentCount.toString(), cellFont))
+            summaryTable.addCell(Paragraph("Absent", cellFont)); summaryTable.addCell(Paragraph(data.absentCount.toString(), cellFont))
+            summaryTable.addCell(Paragraph("Leave", cellFont)); summaryTable.addCell(Paragraph(data.leaveCount.toString(), cellFont))
+            summaryTable.addCell(Paragraph("Holiday", cellFont)); summaryTable.addCell(Paragraph(data.holidayCount.toString(), cellFont))
             document.add(summaryTable)
 
             document.add(Paragraph("\nDaily Records", boldFont))
             val table = PdfPTable(7)
             table.widthPercentage = 100f
-            table.addCell("Date")
-            table.addCell("Entry")
-            table.addCell("Exit")
-            table.addCell("Duration")
-            table.addCell("Late(min)")
-            table.addCell("Early(min)")
-            table.addCell("OT(min)")
+            
+            val headers = listOf("Date", "Entry", "Exit", "Duration", "Late(min)", "Early(min)", "OT(min)")
+            headers.forEach { table.addCell(Paragraph(it, headerFont)) }
 
             data.dailyRecords.forEach { record ->
                 val entry = DateUtils.parseFlexibleTime(record.entryTime)
@@ -681,19 +686,21 @@ suspend fun exportToPdf(context: Context, data: AttendanceSheetData) {
                     "Still In"
                 } else "--"
 
-                table.addCell(record.date)
-                table.addCell(record.entryTime?.substringAfter("T")?.substringBefore(".") ?: "--:--")
-                table.addCell(record.exitTime?.substringAfter("T")?.substringBefore(".") ?: "--:--")
-                table.addCell(durationStr) 
-                table.addCell((record.lateEntry ?: 0).toString())
-                table.addCell((record.earlyExit ?: 0).toString())
-                table.addCell((record.overtime ?: 0).toString())
+                table.addCell(Paragraph(record.date, cellFont))
+                table.addCell(Paragraph(record.entryTime?.substringAfter("T")?.substringBefore(".") ?: "--:--", cellFont))
+                table.addCell(Paragraph(record.exitTime?.substringAfter("T")?.substringBefore(".") ?: "--:--", cellFont))
+                table.addCell(Paragraph(durationStr, cellFont)) 
+                table.addCell(Paragraph((record.lateEntry ?: 0).toString(), cellFont))
+                table.addCell(Paragraph((record.earlyExit ?: 0).toString(), cellFont))
+                table.addCell(Paragraph((record.overtime ?: 0).toString(), cellFont))
             }
             document.add(table)
             document.close()
 
-            shareFile(context, file, "application/pdf")
-        } catch (e: Exception) {
+            withContext(Dispatchers.Main) {
+                shareFile(context, file, "application/pdf")
+            }
+        } catch (e: Throwable) {
             e.printStackTrace()
         }
     }
@@ -702,8 +709,13 @@ suspend fun exportToPdf(context: Context, data: AttendanceSheetData) {
 suspend fun exportToCsv(context: Context, data: AttendanceSheetData) {
     withContext(Dispatchers.IO) {
         try {
-            val fileName = "Attendance_${data.employee.name.replace(" ", "_")}_${data.month.replace(" ", "_")}.csv"
-            val file = File(context.getExternalFilesDir(null), fileName)
+            val sanitizedEmployeeName = data.employee.name.replace(Regex("[^a-zA-Z0-9._-]"), "_")
+            val sanitizedMonth = data.month.replace(Regex("[^a-zA-Z0-9._-]"), "_")
+            val fileName = "Attendance_${sanitizedEmployeeName}_${sanitizedMonth}.csv"
+            
+            val dir = context.getExternalFilesDir(null)
+            if (dir == null) return@withContext
+            val file = File(dir, fileName)
             val writer = FileOutputStream(file).bufferedWriter()
 
             writer.write("Monthly Attendance Sheet\n")
@@ -733,19 +745,27 @@ suspend fun exportToCsv(context: Context, data: AttendanceSheetData) {
             }
             writer.close()
 
-            shareFile(context, file, "text/csv")
-        } catch (e: Exception) {
+            withContext(Dispatchers.Main) {
+                shareFile(context, file, "text/csv")
+            }
+        } catch (e: Throwable) {
             e.printStackTrace()
         }
     }
 }
 
 fun shareFile(context: Context, file: File, type: String) {
-    val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
-    val intent = Intent(Intent.ACTION_SEND).apply {
-        this.type = type
-        putExtra(Intent.EXTRA_STREAM, uri)
-        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    try {
+        val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            this.type = type
+            putExtra(Intent.EXTRA_STREAM, uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        val chooser = Intent.createChooser(intent, "Share Attendance Sheet")
+        chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(chooser)
+    } catch (e: Exception) {
+        e.printStackTrace()
     }
-    context.startActivity(Intent.createChooser(intent, "Share Attendance Sheet"))
 }
