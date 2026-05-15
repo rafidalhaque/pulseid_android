@@ -115,5 +115,23 @@ fun LoginScreen(
         ) {
             Text("Clear Data", color = MaterialTheme.colorScheme.error)
         }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+
+        val context = androidx.compose.ui.platform.LocalContext.current
+        val versionText = remember(context) {
+            try {
+                val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+                "Version ${packageInfo.versionName} (${packageInfo.versionCode})"
+            } catch (e: Exception) {
+                "Version Unknown"
+            }
+        }
+        
+        Text(
+            text = versionText,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+        )
     }
 }

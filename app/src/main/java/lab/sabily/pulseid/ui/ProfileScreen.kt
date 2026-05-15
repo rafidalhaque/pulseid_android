@@ -107,6 +107,27 @@ fun ProfileScreen(securityManager: SecurityManager, authApi: AuthApi, onLogout: 
                         ) {
                             Text("Logout")
                         }
+
+                        val context = androidx.compose.ui.platform.LocalContext.current
+                        val versionText = remember(context) {
+                            try {
+                                val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+                                "Version ${packageInfo.versionName} (${packageInfo.versionCode})"
+                            } catch (e: Exception) {
+                                "Version Unknown"
+                            }
+                        }
+
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = versionText,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            )
+                        }
                     }
                 }
             }
