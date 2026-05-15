@@ -13,8 +13,10 @@ retrofit = "2.11.0"
 okhttp = "4.12.0"
 serialization = "1.7.3"
 lifecycleViewModel = "2.6.1"
+itext = "7.2.5"
 
 [libraries]
+itext7-core = { group = "com.itextpdf", name = "itext7-core", version.ref = "itext" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }

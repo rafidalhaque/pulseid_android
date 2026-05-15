@@ -31,6 +31,7 @@ fun AdminScreen(authApi: AuthApi) {
             AdminSubScreen.HOLIDAYS -> null
             AdminSubScreen.WORK_POLICY -> null
             AdminSubScreen.LEAVE_REQUESTS -> null
+            AdminSubScreen.ATTENDANCE_SHEET -> null
             AdminSubScreen.ADD_HOLIDAY -> AdminSubScreen.HOLIDAYS
             AdminSubScreen.ADD_WORK_POLICY -> AdminSubScreen.WORK_POLICY
             AdminSubScreen.EDIT_WORK_POLICY -> AdminSubScreen.WORK_POLICY
@@ -42,6 +43,12 @@ fun AdminScreen(authApi: AuthApi) {
     }
 
     when (currentSubScreen) {
+        AdminSubScreen.ATTENDANCE_SHEET -> {
+            AttendanceSheetScreen(
+                authApi = authApi,
+                onBack = { currentSubScreen = null }
+            )
+        }
         AdminSubScreen.LEAVE_REQUESTS -> {
             LeaveManagementScreen(
                 authApi = authApi,
@@ -237,11 +244,18 @@ fun AdminScreen(authApi: AuthApi) {
                 ) {
                     Text("Work Policy")
                 }
+
+                Button(
+                    onClick = { currentSubScreen = AdminSubScreen.ATTENDANCE_SHEET },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Attendance Sheet")
+                }
             }
         }
     }
 }
 
 enum class AdminSubScreen {
-    IMPORT, LOGS, ALL_EMPLOYEES, EMPLOYEE_DETAIL, ADD_EMPLOYEE, EDIT_EMPLOYEE, ADD_HOLIDAY, HOLIDAYS, WORK_POLICY, ADD_WORK_POLICY, EDIT_WORK_POLICY, LEAVE_REQUESTS
+    IMPORT, LOGS, ALL_EMPLOYEES, EMPLOYEE_DETAIL, ADD_EMPLOYEE, EDIT_EMPLOYEE, ADD_HOLIDAY, HOLIDAYS, WORK_POLICY, ADD_WORK_POLICY, EDIT_WORK_POLICY, LEAVE_REQUESTS, ATTENDANCE_SHEET
 }
