@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import lab.sabily.pulseid.data.AttendanceRecord
 import lab.sabily.pulseid.data.AuthApi
+import lab.sabily.pulseid.data.DateUtils
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -55,7 +56,7 @@ fun AttendanceHistoryScreen(authApi: AuthApi, isAdmin: Boolean) {
             val historyResponse = authApi.getAttendanceHistory(all = if (showAllRecords) true else null)
             
             if (historyResponse.success) {
-                allRecords = historyResponse.records.sortedBy { it.date }
+                allRecords = historyResponse.records.sortedByDescending { DateUtils.parseFlexibleDate(it.date) ?: Date(0) }
             } else {
                 error = "Failed to fetch data"
             }
@@ -73,7 +74,7 @@ fun AttendanceHistoryScreen(authApi: AuthApi, isAdmin: Boolean) {
 
     val filteredRecords = remember(allRecords, fromDate, toDate) {
         allRecords.filter { record ->
-            val recordDate = try { dateFormat.parse(record.date)?.time ?: 0L } catch(e:Exception) { 0L }
+            val recordDate = DateUtils.parseFlexibleDate(record.date)?.time ?: 0L
             val afterFrom = fromDate?.let { recordDate >= it } ?: true
             val beforeTo = toDate?.let { recordDate <= it } ?: true
             afterFrom && beforeTo
@@ -230,31 +231,6 @@ fun AttendanceHistoryItem(
     displayFormat: SimpleDateFormat,
     dateFormat: SimpleDateFormat
 ) {
-    val parseTime = { timeStr: String? ->
-        if (timeStr == null) null else {
-            val formats = listOf(
-                "yyyy-MM-dd'T'HH:mm:ss",
-                "yyyy-MM-dd'T'HH:mm:ss.SSSSSS",
-                "yyyy-MM-dd'T'HH:mm:ss.SSS",
-                "yyyy-MM-dd HH:mm:ss",
-                "yyyy-MM-dd HH:mm:ss.SSSSSS",
-                "yyyy-MM-dd HH:mm:ss.SSS"
-            )
-            var parsedDate: Date? = null
-            for (format in formats) {
-                try {
-                    val sdf = SimpleDateFormat(format, Locale.getDefault()).apply {
-                        timeZone = isoFormat.timeZone
-                    }
-                    parsedDate = sdf.parse(timeStr)
-                    if (parsedDate != null) break
-                } catch (e: Exception) {
-                }
-            }
-            parsedDate
-        }
-    }
-
     val formatMinutes = { totalMinutes: Int? ->
         if (totalMinutes == null) "" else {
             val hours = totalMinutes / 60
@@ -274,15 +250,15 @@ fun AttendanceHistoryItem(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                val date = try { dateFormat.parse(record.date) } catch (e: Exception) { null }
+                val date = DateUtils.parseFlexibleDate(record.date)
                 Text(
                     text = date?.let { displayFormat.format(it) } ?: record.date,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
 
-                val entry = parseTime(record.entryTime)
-                val exit = parseTime(record.exitTime)
+                val entry = DateUtils.parseFlexibleTime(record.entryTime)
+                val exit = DateUtils.parseFlexibleTime(record.exitTime)
                 val durationText = if (record.exitTime == null) {
                     "Still In Office"
                 } else if (entry != null && exit != null) {
@@ -311,7 +287,7 @@ fun AttendanceHistoryItem(
             Spacer(modifier = Modifier.height(8.dp))
 
             // Entry Row
-            val entryDate = parseTime(record.entryTime)
+            val entryDate = DateUtils.parseFlexibleTime(record.entryTime)
             val entryTimeStr = entryDate?.let { timeFormat.format(it) } ?: record.entryTime ?: "--:--"
             Text(text = "Entry: $entryTimeStr", style = MaterialTheme.typography.bodyLarge)
             if (record.lateEntry != null) {
@@ -334,7 +310,7 @@ fun AttendanceHistoryItem(
                     fontWeight = FontWeight.SemiBold
                 )
             } else {
-                val exitDate = parseTime(record.exitTime)
+                val exitDate = DateUtils.parseFlexibleTime(record.exitTime)
                 val exitTimeStr = exitDate?.let { timeFormat.format(it) } ?: record.exitTime ?: "--:--"
                 Text(text = "Exit: $exitTimeStr", style = MaterialTheme.typography.bodyLarge)
                 if (record.earlyExit != null) {

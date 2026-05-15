@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import lab.sabily.pulseid.data.AuthApi
 import lab.sabily.pulseid.data.Employee
 import lab.sabily.pulseid.data.AttendanceRecord
+import lab.sabily.pulseid.data.DateUtils
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -56,7 +57,7 @@ fun MemberDetailScreen(
             
             if (response.success) {
                 employee = response.employee
-                history = response.history.sortedByDescending { it.date }
+                history = response.history.sortedByDescending { DateUtils.parseFlexibleDate(it.date) ?: Date(0) }
             } else {
                 error = "Failed to fetch details"
             }

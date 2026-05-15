@@ -84,7 +84,11 @@ fun AttendanceSheetScreen(authApi: AuthApi, onBack: () -> Unit) {
                 .padding(padding)
                 .padding(16.dp)
         ) {
-            if (attendanceSheetData == null) {
+            if (isLoading) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            } else if (attendanceSheetData == null) {
                 Step1Selection(
                     employees = employees,
                     selectedEmployee = selectedEmployee,
@@ -129,6 +133,7 @@ fun AttendanceSheetScreen(authApi: AuthApi, onBack: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Step1Selection(
     employees: List<Employee>,
@@ -144,23 +149,27 @@ fun Step1Selection(
 
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         // Employee Dropdown
-        Box {
+        ExposedDropdownMenuBox(
+            expanded = employeeExpanded,
+            onExpandedChange = { employeeExpanded = it },
+            modifier = Modifier.fillMaxWidth()
+        ) {
             OutlinedTextField(
                 value = selectedEmployee?.name ?: "Select Employee",
                 onValueChange = {},
                 label = { Text("Employee") },
                 readOnly = true,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .menuAnchor()
+                    .fillMaxWidth(),
                 trailingIcon = {
-                    IconButton(onClick = { employeeExpanded = !employeeExpanded }) {
-                        Icon(Icons.Default.ArrowDropDown, contentDescription = null)
-                    }
-                }
+                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = employeeExpanded)
+                },
+                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
             )
-            DropdownMenu(
+            ExposedDropdownMenu(
                 expanded = employeeExpanded,
-                onDismissRequest = { employeeExpanded = false },
-                modifier = Modifier.fillMaxWidth()
+                onDismissRequest = { employeeExpanded = false }
             ) {
                 employees.forEach { employee ->
                     DropdownMenuItem(
@@ -175,26 +184,26 @@ fun Step1Selection(
         }
 
         // Month Picker Button
-        OutlinedTextField(
-            value = SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(selectedMonth.time),
-            onValueChange = {},
-            label = { Text("Month") },
-            readOnly = true,
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { showMonthPicker = true },
-            trailingIcon = {
-                IconButton(onClick = { showMonthPicker = true }) {
-                    Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+        Box(modifier = Modifier.fillMaxWidth()) {
+            OutlinedTextField(
+                value = SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(selectedMonth.time),
+                onValueChange = {},
+                label = { Text("Month") },
+                readOnly = true,
+                modifier = Modifier.fillMaxWidth(),
+                trailingIcon = {
+                    IconButton(onClick = { showMonthPicker = true }) {
+                        Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+                    }
                 }
-            },
-            enabled = false,
-            colors = OutlinedTextFieldDefaults.colors(
-                disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                disabledBorderColor = MaterialTheme.colorScheme.outline,
-                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
             )
-        )
+            // Invisible box over the text field to capture clicks
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .clickable { showMonthPicker = true }
+            )
+        }
 
         Button(
             onClick = onGenerate,
@@ -424,31 +433,8 @@ fun TimeCard(data: AttendanceSheetData) {
 @Composable
 fun DailyRecordRow(record: AttendanceRecord) {
     val dhakaZone = TimeZone.getTimeZone("Asia/Dhaka")
-    val isoFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).apply { timeZone = dhakaZone }
     val timeFormat = SimpleDateFormat("hh:mm a", Locale.getDefault()).apply { timeZone = dhakaZone }
     val dateFormat = SimpleDateFormat("dd MMM", Locale.getDefault()).apply { timeZone = dhakaZone }
-
-    val parseTime = { timeStr: String? ->
-        if (timeStr == null) null else {
-            val formats = listOf(
-                "yyyy-MM-dd'T'HH:mm:ss",
-                "yyyy-MM-dd'T'HH:mm:ss.SSSSSS",
-                "yyyy-MM-dd'T'HH:mm:ss.SSS",
-                "yyyy-MM-dd HH:mm:ss",
-                "yyyy-MM-dd HH:mm:ss.SSSSSS",
-                "yyyy-MM-dd HH:mm:ss.SSS"
-            )
-            var parsedDate: Date? = null
-            for (format in formats) {
-                try {
-                    val sdf = SimpleDateFormat(format, Locale.getDefault()).apply { timeZone = dhakaZone }
-                    parsedDate = sdf.parse(timeStr)
-                    if (parsedDate != null) break
-                } catch (e: Exception) {}
-            }
-            parsedDate
-        }
-    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -460,11 +446,11 @@ fun DailyRecordRow(record: AttendanceRecord) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                val date = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(record.date)
+                val date = DateUtils.parseFlexibleDate(record.date)
                 Text(text = date?.let { dateFormat.format(it) } ?: record.date, fontWeight = FontWeight.Bold)
                 
-                val entry = parseTime(record.entryTime)
-                val exit = parseTime(record.exitTime)
+                val entry = DateUtils.parseFlexibleTime(record.entryTime)
+                val exit = DateUtils.parseFlexibleTime(record.exitTime)
                 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("In: ${entry?.let { timeFormat.format(it) } ?: "--:--"}", fontSize = 12.sp)
@@ -524,14 +510,16 @@ suspend fun generateSheet(
             val year = calendar.get(Calendar.YEAR)
             
             val filteredHistory = historyResponse.records.filter { record ->
-                val date = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(record.date)
-                val cal = Calendar.getInstance().apply { time = date!! }
+                val date = DateUtils.parseFlexibleDate(record.date)
+                if (date == null) return@filter false
+                val cal = Calendar.getInstance().apply { time = date }
                 record.employeeId == employee.id && cal.get(Calendar.MONTH) == month && cal.get(Calendar.YEAR) == year
             }
 
             val filteredLeaves = leaveResponse.body.filter { leave ->
-                val date = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(leave.date)
-                val cal = Calendar.getInstance().apply { time = date!! }
+                val date = DateUtils.parseFlexibleDate(leave.date)
+                if (date == null) return@filter false
+                val cal = Calendar.getInstance().apply { time = date }
                 leave.employeeId == employee.id && 
                 cal.get(Calendar.MONTH) == month && 
                 cal.get(Calendar.YEAR) == year && 
@@ -539,8 +527,9 @@ suspend fun generateSheet(
             }
 
             val filteredHolidays = holidayResponse.holidays.filter { holiday ->
-                val date = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(holiday.date)
-                val cal = Calendar.getInstance().apply { time = date!! }
+                val date = DateUtils.parseFlexibleDate(holiday.date)
+                if (date == null) return@filter false
+                val cal = Calendar.getInstance().apply { time = date }
                 cal.get(Calendar.MONTH) == month && cal.get(Calendar.YEAR) == year
             }
 
@@ -552,8 +541,9 @@ suspend fun generateSheet(
                 val dayOfWeek = cal.get(Calendar.DAY_OF_WEEK)
                 val isWeekend = dayOfWeek == Calendar.FRIDAY
                 val isHoliday = filteredHolidays.any { h ->
-                    val hDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(h.date)
-                    val hCal = Calendar.getInstance().apply { time = hDate!! }
+                    val hDate = DateUtils.parseFlexibleDate(h.date)
+                    if (hDate == null) return@any false
+                    val hCal = Calendar.getInstance().apply { time = hDate }
                     hCal.get(Calendar.DAY_OF_MONTH) == i
                 }
                 if (!isWeekend && !isHoliday) officeDays++
@@ -573,30 +563,17 @@ suspend fun generateSheet(
 
             // Policy
             val policy = policyResponse.policy.find { p ->
-                val start = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(p.startDate)
-                val end = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(p.endDate)
+                val start = DateUtils.parseFlexibleDate(p.startDate)
+                val end = DateUtils.parseFlexibleDate(p.endDate)
+                if (start == null || end == null) return@find false
                 val current = calendar.time
                 !current.before(start) && !current.after(end)
             } ?: policyResponse.policy.lastOrNull()
 
             var totalTimeMinutes = 0
             filteredHistory.forEach { record ->
-                val dhakaZone = TimeZone.getTimeZone("Asia/Dhaka")
-                val parse = { s: String? ->
-                    if (s == null) null else {
-                        val formats = listOf(
-                            "yyyy-MM-dd'T'HH:mm:ss", "yyyy-MM-dd'T'HH:mm:ss.SSSSSS", "yyyy-MM-dd'T'HH:mm:ss.SSS",
-                            "yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd HH:mm:ss.SSSSSS", "yyyy-MM-dd HH:mm:ss.SSS"
-                        )
-                        var d: Date? = null
-                        for (f in formats) {
-                            try { d = SimpleDateFormat(f, Locale.getDefault()).apply { timeZone = dhakaZone }.parse(s); if (d != null) break } catch (e: Exception) {}
-                        }
-                        d
-                    }
-                }
-                val entry = parse(record.entryTime)
-                val exit = parse(record.exitTime)
+                val entry = DateUtils.parseFlexibleTime(record.entryTime)
+                val exit = DateUtils.parseFlexibleTime(record.exitTime)
                 if (entry != null && exit != null) {
                     totalTimeMinutes += ((exit.time - entry.time) / (1000 * 60)).toInt()
                 }
@@ -695,22 +672,8 @@ suspend fun exportToPdf(context: Context, data: AttendanceSheetData) {
             table.addCell("OT(min)")
 
             data.dailyRecords.forEach { record ->
-                val dhakaZone = TimeZone.getTimeZone("Asia/Dhaka")
-                val parse = { s: String? ->
-                    if (s == null) null else {
-                        val formats = listOf(
-                            "yyyy-MM-dd'T'HH:mm:ss", "yyyy-MM-dd'T'HH:mm:ss.SSSSSS", "yyyy-MM-dd'T'HH:mm:ss.SSS",
-                            "yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd HH:mm:ss.SSSSSS", "yyyy-MM-dd HH:mm:ss.SSS"
-                        )
-                        var d: Date? = null
-                        for (f in formats) {
-                            try { d = SimpleDateFormat(f, Locale.getDefault()).apply { timeZone = dhakaZone }.parse(s); if (d != null) break } catch (e: Exception) {}
-                        }
-                        d
-                    }
-                }
-                val entry = parse(record.entryTime)
-                val exit = parse(record.exitTime)
+                val entry = DateUtils.parseFlexibleTime(record.entryTime)
+                val exit = DateUtils.parseFlexibleTime(record.exitTime)
                 val durationStr = if (entry != null && exit != null) {
                     val diff = (exit.time - entry.time) / (1000 * 60)
                     formatDuration(diff.toInt())
@@ -757,22 +720,8 @@ suspend fun exportToCsv(context: Context, data: AttendanceSheetData) {
             writer.write("Daily Records\n")
             writer.write("Date,Entry,Exit,Duration,Late(min),Early(min),OT(min)\n")
             data.dailyRecords.forEach { record ->
-                val dhakaZone = TimeZone.getTimeZone("Asia/Dhaka")
-                val parse = { s: String? ->
-                    if (s == null) null else {
-                        val formats = listOf(
-                            "yyyy-MM-dd'T'HH:mm:ss", "yyyy-MM-dd'T'HH:mm:ss.SSSSSS", "yyyy-MM-dd'T'HH:mm:ss.SSS",
-                            "yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd HH:mm:ss.SSSSSS", "yyyy-MM-dd HH:mm:ss.SSS"
-                        )
-                        var d: Date? = null
-                        for (f in formats) {
-                            try { d = SimpleDateFormat(f, Locale.getDefault()).apply { timeZone = dhakaZone }.parse(s); if (d != null) break } catch (e: Exception) {}
-                        }
-                        d
-                    }
-                }
-                val entry = parse(record.entryTime)
-                val exit = parse(record.exitTime)
+                val entry = DateUtils.parseFlexibleTime(record.entryTime)
+                val exit = DateUtils.parseFlexibleTime(record.exitTime)
                 val durationStr = if (entry != null && exit != null) {
                     val diff = (exit.time - entry.time) / (1000 * 60)
                     formatDuration(diff.toInt())
