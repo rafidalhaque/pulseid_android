@@ -25,17 +25,28 @@ fun AddHolidayScreen(
 ) {
     var holidayName by remember { mutableStateOf("") }
     var isNational by remember { mutableStateOf(true) }
-    var showDatePicker by remember { mutableStateOf(false) }
-    val datePickerState = rememberDatePickerState()
+    var isRange by remember { mutableStateOf(false) }
+    var showStartDatePicker by remember { mutableStateOf(false) }
+    var showEndDatePicker by remember { mutableStateOf(false) }
+    val startDatePickerState = rememberDatePickerState()
+    val endDatePickerState = rememberDatePickerState()
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     var isSubmitting by remember { mutableStateOf(false) }
 
-    val selectedDate = datePickerState.selectedDateMillis?.let {
+    val dateFormatter = remember { 
         SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).apply {
             timeZone = TimeZone.getTimeZone("UTC")
-        }.format(Date(it))
-    } ?: "Select Date"
+        }
+    }
+
+    val selectedStartDate = startDatePickerState.selectedDateMillis?.let {
+        dateFormatter.format(Date(it))
+    } ?: "Select Start Date"
+
+    val selectedEndDate = endDatePickerState.selectedDateMillis?.let {
+        dateFormatter.format(Date(it))
+    } ?: "Select End Date"
 
     Scaffold(
         topBar = {
@@ -66,8 +77,20 @@ fun AddHolidayScreen(
                 singleLine = true
             )
 
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(text = "Range Holiday?", style = MaterialTheme.typography.bodyLarge)
+                Switch(
+                    checked = isRange,
+                    onCheckedChange = { isRange = it }
+                )
+            }
+
             OutlinedCard(
-                onClick = { showDatePicker = true },
+                onClick = { showStartDatePicker = true },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
@@ -77,12 +100,34 @@ fun AddHolidayScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(text = "Date", style = MaterialTheme.typography.bodyLarge)
+                    Text(text = if (isRange) "Start Date" else "Date", style = MaterialTheme.typography.bodyLarge)
                     Text(
-                        text = selectedDate,
+                        text = selectedStartDate,
                         style = MaterialTheme.typography.bodyLarge,
-                        color = if (selectedDate == "Select Date") MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                        color = if (selectedStartDate == "Select Start Date") MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
                     )
+                }
+            }
+
+            if (isRange) {
+                OutlinedCard(
+                    onClick = { showEndDatePicker = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = "End Date", style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            text = selectedEndDate,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = if (selectedEndDate == "Select End Date") MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
             }
 
@@ -102,9 +147,23 @@ fun AddHolidayScreen(
 
             Button(
                 onClick = {
-                    if (holidayName.isBlank() || datePickerState.selectedDateMillis == null) {
+                    if (holidayName.isBlank() || startDatePickerState.selectedDateMillis == null) {
                         scope.launch {
-                            snackbarHostState.showSnackbar("Please fill all fields")
+                            snackbarHostState.showSnackbar("Please fill all required fields")
+                        }
+                        return@Button
+                    }
+
+                    if (isRange && endDatePickerState.selectedDateMillis == null) {
+                        scope.launch {
+                            snackbarHostState.showSnackbar("Please select an end date for range holiday")
+                        }
+                        return@Button
+                    }
+
+                    if (isRange && endDatePickerState.selectedDateMillis!! <= startDatePickerState.selectedDateMillis!!) {
+                        scope.launch {
+                            snackbarHostState.showSnackbar("End date must be after start date")
                         }
                         return@Button
                     }
@@ -113,7 +172,8 @@ fun AddHolidayScreen(
                         isSubmitting = true
                         try {
                             val request = AddHolidayRequest(
-                                date = selectedDate,
+                                date = selectedStartDate,
+                                endDate = if (isRange) selectedEndDate else null,
                                 name = holidayName,
                                 isNational = isNational
                             )
@@ -149,21 +209,39 @@ fun AddHolidayScreen(
         }
     }
 
-    if (showDatePicker) {
+    if (showStartDatePicker) {
         DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
+            onDismissRequest = { showStartDatePicker = false },
             confirmButton = {
-                TextButton(onClick = { showDatePicker = false }) {
+                TextButton(onClick = { showStartDatePicker = false }) {
                     Text("OK")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) {
+                TextButton(onClick = { showStartDatePicker = false }) {
                     Text("Cancel")
                 }
             }
         ) {
-            DatePicker(state = datePickerState)
+            DatePicker(state = startDatePickerState)
+        }
+    }
+
+    if (showEndDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showEndDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = { showEndDatePicker = false }) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEndDatePicker = false }) {
+                    Text("Cancel")
+                }
+            }
+        ) {
+            DatePicker(state = endDatePickerState)
         }
     }
 }

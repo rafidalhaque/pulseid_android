@@ -106,6 +106,37 @@ fun HolidaysScreen(
 
 @Composable
 fun HolidayItem(holiday: Holiday) {
+    val inputFormat = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
+    val outputFormat = remember { SimpleDateFormat("dd MMM", Locale.getDefault()) }
+    val yearFormat = remember { SimpleDateFormat("yyyy", Locale.getDefault()) }
+
+    val formattedDate = remember(holiday.date, holiday.endDate) {
+        try {
+            val startDate = inputFormat.parse(holiday.date)
+            if (holiday.endDate != null) {
+                val endDate = inputFormat.parse(holiday.endDate)
+                if (startDate != null && endDate != null) {
+                    val startStr = outputFormat.format(startDate)
+                    val endStr = outputFormat.format(endDate)
+                    val yearStr = yearFormat.format(endDate)
+                    "$startStr - $endStr $yearStr"
+                } else {
+                    holiday.date
+                }
+            } else {
+                if (startDate != null) {
+                    val dateStr = outputFormat.format(startDate)
+                    val yearStr = yearFormat.format(startDate)
+                    "$dateStr $yearStr"
+                } else {
+                    holiday.date
+                }
+            }
+        } catch (e: Exception) {
+            holiday.date
+        }
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -125,7 +156,7 @@ fun HolidayItem(holiday: Holiday) {
                     style = MaterialTheme.typography.titleMedium
                 )
                 Text(
-                    text = holiday.date,
+                    text = formattedDate,
                     style = MaterialTheme.typography.bodyMedium
                 )
             }

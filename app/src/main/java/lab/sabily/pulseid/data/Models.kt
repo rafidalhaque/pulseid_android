@@ -124,6 +124,7 @@ data class EditEmployeeRequest(
 @Serializable
 data class AddHolidayRequest(
     val date: String,
+    @SerialName("end_date") val endDate: String? = null,
     val name: String,
     @SerialName("is_national") val isNational: Boolean
 )
@@ -152,6 +153,7 @@ data class AddHolidayResponse(
 data class Holiday(
     val id: String,
     val date: String,
+    @SerialName("end_date") val endDate: String? = null,
     @SerialName("holiday_name") val holidayName: String,
     @SerialName("is_national") val isNational: Boolean
 )
