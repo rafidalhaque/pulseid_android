@@ -301,7 +301,7 @@ fun BleAdvertisingScreen(
             verticalArrangement = Arrangement.Top,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(text = "Status:", style = MaterialTheme.typography.titleMedium)
+            Text(text = "Status:", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 48.dp))
             Text(text = status, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(bottom = 24.dp))
 
             Button(
