@@ -414,7 +414,9 @@ suspend fun generateAtAGlance(
                 cal.add(Calendar.DAY_OF_MONTH, 1)
             }
 
-            val resultList = profiles.employee.map { emp ->
+            val resultList = profiles.employee
+                .filter { it.position != "0" }
+                .map { emp ->
                 val empHistory = history.records.filter {
                     val d = DateUtils.parseFlexibleDate(it.date)?.time ?: 0L
                     it.employeeId == emp.id && d in startMillis..endMillis

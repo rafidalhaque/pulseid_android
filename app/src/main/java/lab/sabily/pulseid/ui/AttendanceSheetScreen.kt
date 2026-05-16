@@ -61,9 +61,8 @@ fun AttendanceSheetScreen(authApi: AuthApi, onBack: () -> Unit) {
         try {
             val response = authApi.getAllMembers(all = true)
             if (response.success) {
-                employees = response.employee
-            }
-        } catch (e: Exception) {
+                employees = response.employee.filter { it.position != "0" }
+            } else {
             error = "Failed to fetch employees"
         } finally {
             isLoading = false

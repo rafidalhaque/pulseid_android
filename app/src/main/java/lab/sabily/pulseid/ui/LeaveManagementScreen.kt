@@ -62,20 +62,26 @@ fun LeaveManagementScreen(
     val fetchLeaveRecords = suspend {
         isRefreshing = true
         try {
-            val response = authApi.getLeaveRecords()
-            if (response.success) {
-                val sdf = SimpleDateFormat("dd MMM, yyyy", Locale.getDefault())
-                leaveRecords = response.body.sortedByDescending { 
-                    try { sdf.parse(it.date) } catch (e: Exception) { Date(0) }
-                }
-            } else {
-                error = "Failed to fetch leave records"
-            }
-            
             // Fetch employees for name mapping fallback
             val empResponse = authApi.getAllMembers()
             if (empResponse.success) {
-                employees = empResponse.employee
+                employees = empResponse.employee.filter { it.position != "0" }
+                val validEmpIds = employees.map { it.id }.toSet()
+                
+                // Filter leave records to only show those of non-hidden employees
+                val response = authApi.getLeaveRecords()
+                if (response.success) {
+                    val sdf = SimpleDateFormat("dd MMM, yyyy", Locale.getDefault())
+                    leaveRecords = response.body
+                        .filter { it.employeeId in validEmpIds }
+                        .sortedByDescending { 
+                            try { sdf.parse(it.date) } catch (e: Exception) { Date(0) }
+                        }
+                } else {
+                    error = "Failed to fetch leave records"
+                }
+            } else {
+                error = "Failed to fetch employees"
             }
         } catch (e: Exception) {
             error = e.message ?: "An unknown error occurred"

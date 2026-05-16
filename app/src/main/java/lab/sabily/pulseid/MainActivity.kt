@@ -206,6 +206,7 @@ fun BleAdvertisingScreen(
 
     var presentEmployees by remember { mutableStateOf<List<AttendanceRecord>>(emptyList()) }
     var leftEmployees by remember { mutableStateOf<List<AttendanceRecord>>(emptyList()) }
+    var hiddenEmployeeIds by remember { mutableStateOf<Set<String>>(emptySet()) }
     var isLoadingData by remember { mutableStateOf(false) }
 
     val refreshState = rememberPullToRefreshState()
@@ -219,8 +220,8 @@ fun BleAdvertisingScreen(
                 val leftDeferred = async { authApi.getLeftEmployees() }
                 
                 try {
-                    presentEmployees = presentDeferred.await()
-                    leftEmployees = leftDeferred.await()
+                    presentEmployees = presentDeferred.await().filter { it.employeeId !in hiddenEmployeeIds }
+                    leftEmployees = leftDeferred.await().filter { it.employeeId !in hiddenEmployeeIds }
                 } catch (e: Exception) {
                     android.util.Log.e("MainActivity", "Failed to fetch attendance data", e)
                 }
@@ -235,6 +236,19 @@ fun BleAdvertisingScreen(
 
     LaunchedEffect(Unit) {
         isLoadingData = true
+        // Fetch hidden employee IDs once (position == "0")
+        try {
+            val response = authApi.getAllMembers(all = true)
+            if (response.success) {
+                hiddenEmployeeIds = response.employee
+                    .filter { it.position == "0" }
+                    .map { it.id }
+                    .toSet()
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "Failed to fetch members for filtering", e)
+        }
+
         while (true) {
             fetchAttendanceData()
             delay(5000)

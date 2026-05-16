@@ -38,7 +38,10 @@ fun AllEmployeesScreen(
             val response = authApi.getAllMembers()
             if (response.success) {
                 // Sort by position (which is a String in Employee model, converting to Int for sorting)
-                employees = response.employee.sortedBy { it.position.toIntOrNull() ?: Int.MAX_VALUE }
+                // Filter out employees with position "0"
+                employees = response.employee
+                    .filter { it.position != "0" }
+                    .sortedBy { it.position.toIntOrNull() ?: Int.MAX_VALUE }
             } else {
                 error = "Failed to fetch employees"
             }
