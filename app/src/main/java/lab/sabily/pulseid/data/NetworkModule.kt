@@ -77,6 +77,12 @@ interface AuthApi {
 
     @retrofit2.http.PATCH("/api/attendance/leave/manage")
     suspend fun manageLeave(@Body request: ManageLeaveRequest): GenericResponse
+
+    @POST("/api/admin/esp32/command")
+    suspend fun esp32Command(@Body request: Esp32CommandRequest): Esp32CommandResult
+
+    @GET("/api/admin/esp32/ping")
+    suspend fun esp32Ping(): Esp32PingResult
 }
 
 class NetworkModule(private val securityManager: SecurityManager) {

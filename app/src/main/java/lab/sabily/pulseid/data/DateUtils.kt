@@ -55,4 +55,17 @@ object DateUtils {
         }
         return null
     }
+
+    fun formatUptime(uptimeMs: Long): String {
+        val seconds = (uptimeMs / 1000) % 60
+        val minutes = (uptimeMs / (1000 * 60)) % 60
+        val hours = (uptimeMs / (1000 * 60 * 60))
+        
+        val result = StringBuilder()
+        if (hours > 0) result.append("${hours}h ")
+        if (minutes > 0 || hours > 0) result.append("${minutes}m ")
+        result.append("${seconds}s")
+        
+        return result.toString()
+    }
 }

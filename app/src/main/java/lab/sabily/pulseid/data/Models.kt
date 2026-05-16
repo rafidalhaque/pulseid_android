@@ -231,3 +231,23 @@ data class ManageLeaveRequest(
     val id: String,
     @SerialName("is_approved") val isApproved: String
 )
+
+@Serializable
+data class Esp32PingResult(
+    val success: Boolean,
+    val uptime_ms: Long? = null,
+    val free_heap: Int? = null,
+    val wifi_ip: String? = null,
+    val wifi_rssi: Int? = null,
+    val msg: String? = null
+)
+
+@Serializable
+data class Esp32CommandRequest(
+    val command: String
+)
+
+@Serializable
+data class Esp32CommandResult(
+    val success: Boolean
+)

@@ -33,6 +33,7 @@ fun AdminScreen(authApi: AuthApi) {
             AdminSubScreen.LEAVE_REQUESTS -> null
             AdminSubScreen.ATTENDANCE_SHEET -> null
             AdminSubScreen.AT_A_GLANCE -> null
+            AdminSubScreen.ESP32_MANAGEMENT -> null
             AdminSubScreen.ADD_HOLIDAY -> AdminSubScreen.HOLIDAYS
             AdminSubScreen.ADD_WORK_POLICY -> AdminSubScreen.WORK_POLICY
             AdminSubScreen.EDIT_WORK_POLICY -> AdminSubScreen.WORK_POLICY
@@ -44,6 +45,12 @@ fun AdminScreen(authApi: AuthApi) {
     }
 
     when (currentSubScreen) {
+        AdminSubScreen.ESP32_MANAGEMENT -> {
+            Esp32ManagementScreen(
+                authApi = authApi,
+                onBack = { currentSubScreen = null }
+            )
+        }
         AdminSubScreen.AT_A_GLANCE -> {
             AtAGlanceScreen(
                 authApi = authApi,
@@ -265,11 +272,18 @@ fun AdminScreen(authApi: AuthApi) {
                 ) {
                     Text("At A Glance")
                 }
+
+                Button(
+                    onClick = { currentSubScreen = AdminSubScreen.ESP32_MANAGEMENT },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("ESP32 Management")
+                }
             }
         }
     }
 }
 
 enum class AdminSubScreen {
-    IMPORT, LOGS, ALL_EMPLOYEES, EMPLOYEE_DETAIL, ADD_EMPLOYEE, EDIT_EMPLOYEE, ADD_HOLIDAY, HOLIDAYS, WORK_POLICY, ADD_WORK_POLICY, EDIT_WORK_POLICY, LEAVE_REQUESTS, ATTENDANCE_SHEET, AT_A_GLANCE
+    IMPORT, LOGS, ALL_EMPLOYEES, EMPLOYEE_DETAIL, ADD_EMPLOYEE, EDIT_EMPLOYEE, ADD_HOLIDAY, HOLIDAYS, WORK_POLICY, ADD_WORK_POLICY, EDIT_WORK_POLICY, LEAVE_REQUESTS, ATTENDANCE_SHEET, AT_A_GLANCE, ESP32_MANAGEMENT
 }
