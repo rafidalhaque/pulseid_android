@@ -63,7 +63,10 @@ fun AttendanceSheetScreen(authApi: AuthApi, onBack: () -> Unit) {
             if (response.success) {
                 employees = response.employee.filter { it.position != "0" }
             } else {
-            error = "Failed to fetch employees"
+                error = "Failed to fetch employees"
+            }
+        } catch (e: Exception) {
+            error = e.message
         } finally {
             isLoading = false
         }

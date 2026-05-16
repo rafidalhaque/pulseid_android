@@ -603,9 +603,9 @@ suspend fun exportAtAGlancePdf(context: Context, dataList: List<AtAGlanceData>, 
             val table = PdfPTable(20)
             table.widthPercentage = 100f
             val headers = listOf(
-                "Pos", "Name", "Off Days", "Pres", "Avg Time", "Leave", "Abs", "Hol",
-                "Short", "Req", "Ext Day", "In Time", "Late", "Tot Late",
-                "Exit OK", "Early", "Tot Ext", "Off In", "Off Out", "Tot Time"
+                "Serial", "Name", "Office Days", "Present", "Average Time", "Leave Day", "Absent", "Holiday",
+                "Short Time", "Required Time", "Extra Day", "In Time", "Late", "Total Late",
+                "Exit OK", "Early Exit", "Total Exit", "Office In", "Office Out", "Total Time"
             )
             headers.forEach { table.addCell(Paragraph(it, headerFont)) }
 
