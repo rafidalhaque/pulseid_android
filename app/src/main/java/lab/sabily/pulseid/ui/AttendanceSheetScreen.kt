@@ -13,7 +13,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.PictureAsPdf
+import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -311,10 +312,10 @@ fun Step2Display(
             }
             Row {
                 IconButton(onClick = onExportPdf) {
-                    Icon(Icons.Default.Download, contentDescription = "Export PDF")
+                    Icon(Icons.Default.PictureAsPdf, contentDescription = "Export PDF", tint = Color(0xFFF44336))
                 }
                 IconButton(onClick = onExportCsv) {
-                    Icon(Icons.Default.Download, contentDescription = "Export CSV")
+                    Icon(Icons.Default.TableChart, contentDescription = "Export CSV", tint = Color(0xFF4CAF50))
                 }
             }
         }
