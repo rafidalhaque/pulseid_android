@@ -80,7 +80,7 @@ fun Esp32ManagementScreen(authApi: AuthApi, onBack: () -> Unit) {
                             Spacer(modifier = Modifier.height(16.dp))
                             LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                             Text(
-                                "Waiting for device poll (5s)...",
+                                "Polling device for status (up to 10s)...",
                                 style = MaterialTheme.typography.labelSmall,
                                 modifier = Modifier.padding(top = 4.dp)
                             )
@@ -95,18 +95,29 @@ fun Esp32ManagementScreen(authApi: AuthApi, onBack: () -> Unit) {
                                     try {
                                         val cmdRes = authApi.esp32Command(Esp32CommandRequest("ping"))
                                         if (cmdRes.success) {
-                                            delay(5000)
-                                            val pingRes = authApi.esp32Ping()
-                                            if (pingRes.success) {
-                                                pingResult = pingRes
-                                            } else {
-                                                snackbarHostState.showSnackbar(pingRes.msg ?: "Failed to get ping data")
+                                            var pollSuccess = false
+                                            for (i in 1..5) {
+                                                delay(2000)
+                                                try {
+                                                    val pingRes = authApi.esp32Ping()
+                                                    if (pingRes.success) {
+                                                        pingResult = pingRes
+                                                        pollSuccess = true
+                                                        break
+                                                    }
+                                                } catch (e: Exception) {
+                                                    // Continue polling if not last attempt
+                                                    if (i == 5) throw e
+                                                }
+                                            }
+                                            if (!pollSuccess) {
+                                                scope.launch { snackbarHostState.showSnackbar("Ping timed out after 5 attempts") }
                                             }
                                         } else {
-                                            snackbarHostState.showSnackbar("Failed to send ping command")
+                                            scope.launch { snackbarHostState.showSnackbar("Failed to send ping command") }
                                         }
                                     } catch (e: Exception) {
-                                        snackbarHostState.showSnackbar("Error: ${e.message}")
+                                        scope.launch { snackbarHostState.showSnackbar("Error: ${e.message}") }
                                     } finally {
                                         isPingLoading = false
                                     }
@@ -148,6 +159,8 @@ fun Esp32ManagementScreen(authApi: AuthApi, onBack: () -> Unit) {
                         ) {
                             if (isRebootLoading) {
                                 CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onError)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Rebooting...")
                             } else {
                                 Text("Reboot ESP32")
                             }
@@ -172,12 +185,12 @@ fun Esp32ManagementScreen(authApi: AuthApi, onBack: () -> Unit) {
                             try {
                                 val res = authApi.esp32Command(Esp32CommandRequest("reboot"))
                                 if (res.success) {
-                                    snackbarHostState.showSnackbar("Reboot command sent")
+                                    scope.launch { snackbarHostState.showSnackbar("Reboot command sent") }
                                 } else {
-                                    snackbarHostState.showSnackbar("Failed to send reboot command")
+                                    scope.launch { snackbarHostState.showSnackbar("Failed to send reboot command") }
                                 }
                             } catch (e: Exception) {
-                                snackbarHostState.showSnackbar("Error: ${e.message}")
+                                scope.launch { snackbarHostState.showSnackbar("Error: ${e.message}") }
                             } finally {
                                 isRebootLoading = false
                             }
