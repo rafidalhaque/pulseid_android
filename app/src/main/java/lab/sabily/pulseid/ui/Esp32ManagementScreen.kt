@@ -26,6 +26,24 @@ fun Esp32ManagementScreen(authApi: AuthApi, onBack: () -> Unit) {
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
+    // Automatic polling
+    LaunchedEffect(Unit) {
+        while (true) {
+            isPingLoading = true
+            try {
+                val pingRes = authApi.esp32Ping()
+                if (pingRes.success) {
+                    pingResult = pingRes
+                }
+            } catch (e: Exception) {
+                // Silently ignore polling errors to avoid spamming the user
+            } finally {
+                isPingLoading = false
+            }
+            delay(10000)
+        }
+    }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
@@ -52,16 +70,25 @@ fun Esp32ManagementScreen(authApi: AuthApi, onBack: () -> Unit) {
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            "Device Status",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                "Device Status",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                            if (isPingLoading) {
+                                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                            }
+                        }
                         Spacer(modifier = Modifier.height(16.dp))
                         
-                        if (pingResult == null && !isPingLoading) {
-                            Text("No data — send ping first", style = MaterialTheme.typography.bodyMedium)
-                        } else if (pingResult != null) {
+                        if (pingResult == null) {
+                            Text("Fetching device status...", style = MaterialTheme.typography.bodyMedium)
+                        } else {
                             StatusField("Uptime", pingResult?.uptime_ms?.let { DateUtils.formatUptime(it) } ?: "N/A")
                             StatusField("Free Heap", "${pingResult?.free_heap ?: "N/A"} bytes")
                             StatusField("WiFi IP", pingResult?.wifi_ip ?: "N/A")
@@ -74,65 +101,13 @@ fun Esp32ManagementScreen(authApi: AuthApi, onBack: () -> Unit) {
                                 else -> "Weak"
                             }
                             StatusField("WiFi RSSI", "$rssi dBm ($rssiLabel)")
-                        }
-                        
-                        if (isPingLoading) {
-                            Spacer(modifier = Modifier.height(16.dp))
-                            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                "Polling device for status (up to 10s)...",
+                                "Last updated: Just now (auto-polls every 10s)",
                                 style = MaterialTheme.typography.labelSmall,
-                                modifier = Modifier.padding(top = 4.dp)
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                        }
-
-                        Spacer(modifier = Modifier.height(16.dp))
-                        
-                        Button(
-                            onClick = {
-                                scope.launch {
-                                    isPingLoading = true
-                                    try {
-                                        val cmdRes = authApi.esp32Command(Esp32CommandRequest("ping"))
-                                        if (cmdRes.success) {
-                                            var pollSuccess = false
-                                            for (i in 1..5) {
-                                                delay(2000)
-                                                try {
-                                                    val pingRes = authApi.esp32Ping()
-                                                    if (pingRes.success) {
-                                                        pingResult = pingRes
-                                                        pollSuccess = true
-                                                        break
-                                                    }
-                                                } catch (e: Exception) {
-                                                    // Continue polling if not last attempt
-                                                    if (i == 5) throw e
-                                                }
-                                            }
-                                            if (!pollSuccess) {
-                                                scope.launch { snackbarHostState.showSnackbar("Ping timed out after 5 attempts") }
-                                            }
-                                        } else {
-                                            scope.launch { snackbarHostState.showSnackbar("Failed to send ping command") }
-                                        }
-                                    } catch (e: Exception) {
-                                        scope.launch { snackbarHostState.showSnackbar("Error: ${e.message}") }
-                                    } finally {
-                                        isPingLoading = false
-                                    }
-                                }
-                            },
-                            enabled = !isPingLoading,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            if (isPingLoading) {
-                                CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Pinging...")
-                            } else {
-                                Text("Ping Device")
-                            }
                         }
                     }
                 }
