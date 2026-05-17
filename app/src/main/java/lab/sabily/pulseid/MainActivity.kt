@@ -62,6 +62,7 @@ import java.util.*
 
 class MainActivity : FragmentActivity() {
     private lateinit var appLockViewModel: AppLockViewModel
+    private lateinit var appUpdateViewModel: AppUpdateViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -74,13 +75,55 @@ class MainActivity : FragmentActivity() {
         appLockViewModel = ViewModelProvider(this, AppLockViewModel.Factory(securityManager))[AppLockViewModel::class.java]
         ProcessLifecycleOwner.get().lifecycle.addObserver(appLockViewModel)
 
+        appUpdateViewModel = ViewModelProvider(this, AppUpdateViewModel.Factory(application, networkModule.updateApi))[AppUpdateViewModel::class.java]
+
         setContent {
             PulseIDTheme {
                 val isAuthenticated by securityManager.isAuthenticated.collectAsState()
                 val isLocked by appLockViewModel.isLocked.collectAsState()
+                val updateState by appUpdateViewModel.state.collectAsState()
                 var selectedTab by remember { mutableIntStateOf(0) }
                 var isAdmin by remember { mutableStateOf(false) }
                 var isSettingUpPin by remember { mutableStateOf(false) }
+                var showUpdateDialog by remember { mutableStateOf(false) }
+
+                LaunchedEffect(Unit) {
+                    appUpdateViewModel.checkForUpdates(silent = true)
+                }
+
+                LaunchedEffect(updateState) {
+                    if (updateState is AppUpdateState.UpdateAvailable) {
+                        showUpdateDialog = true
+                    }
+                }
+
+                if (showUpdateDialog && updateState is AppUpdateState.UpdateAvailable) {
+                    val info = (updateState as AppUpdateState.UpdateAvailable).versionInfo
+                    AlertDialog(
+                        onDismissRequest = { showUpdateDialog = false },
+                        title = { Text("Update Available") },
+                        text = {
+                            Column {
+                                Text("A new version of PulseID is available: ${info.versionName}")
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text("Changelog: ${info.changelog}", style = MaterialTheme.typography.bodySmall)
+                            }
+                        },
+                        confirmButton = {
+                            Button(onClick = {
+                                appUpdateViewModel.startDownload(info)
+                                showUpdateDialog = false
+                            }) {
+                                Text("Update Now")
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showUpdateDialog = false }) {
+                                Text("Later")
+                            }
+                        }
+                    )
+                }
 
                 BackHandler(enabled = (isAuthenticated && selectedTab != 0) || isSettingUpPin) {
                     if (isSettingUpPin) {
@@ -191,7 +234,8 @@ class MainActivity : FragmentActivity() {
                                                         securityManager.clearToken()
                                                         bleKeyManager.clearSecret()
                                                     },
-                                                    onNavigateToAppLockSetup = { isSettingUpPin = true }
+                                                    onNavigateToAppLockSetup = { isSettingUpPin = true },
+                                                    appUpdateViewModel = appUpdateViewModel
                                                 )
                                             }
                                         }
@@ -204,7 +248,8 @@ class MainActivity : FragmentActivity() {
                                                         securityManager.clearToken()
                                                         bleKeyManager.clearSecret()
                                                     },
-                                                    onNavigateToAppLockSetup = { isSettingUpPin = true }
+                                                    onNavigateToAppLockSetup = { isSettingUpPin = true },
+                                                    appUpdateViewModel = appUpdateViewModel
                                                 )
                                             }
                                         }

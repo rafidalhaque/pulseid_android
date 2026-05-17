@@ -251,3 +251,11 @@ data class Esp32CommandRequest(
 data class Esp32CommandResult(
     val success: Boolean
 )
+
+@Serializable
+data class VersionInfo(
+    @SerialName("version_code") val versionCode: Int,
+    @SerialName("version_name") val versionName: String,
+    @SerialName("download_url") val downloadUrl: String,
+    val changelog: String
+)

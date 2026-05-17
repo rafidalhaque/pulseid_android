@@ -85,6 +85,11 @@ interface AuthApi {
     suspend fun esp32Ping(): Esp32PingResult
 }
 
+interface AppUpdateService {
+    @GET("/api/app/version")
+    suspend fun getLatestVersion(): VersionInfo
+}
+
 class NetworkModule(private val securityManager: SecurityManager) {
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -123,4 +128,11 @@ class NetworkModule(private val securityManager: SecurityManager) {
         .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
         .build()
         .create(AuthApi::class.java)
+
+    val updateApi: AppUpdateService = Retrofit.Builder()
+        .baseUrl("https://pulseid.teamsabily.online")
+        .client(client)
+        .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+        .build()
+        .create(AppUpdateService::class.java)
 }

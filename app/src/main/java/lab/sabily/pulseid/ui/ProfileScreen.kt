@@ -31,7 +31,8 @@ fun ProfileScreen(
     securityManager: SecurityManager,
     authApi: AuthApi,
     onLogout: () -> Unit,
-    onNavigateToAppLockSetup: () -> Unit
+    onNavigateToAppLockSetup: () -> Unit,
+    appUpdateViewModel: AppUpdateViewModel
 ) {
     var profile by remember { mutableStateOf<ProfileResponse?>(null) }
     var isLoading by remember { mutableStateOf(true) }
@@ -115,6 +116,11 @@ fun ProfileScreen(
                         
                         AppLockSettings(securityManager, onNavigateToAppLockSetup)
 
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
+                        Text(text = "App Updates", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                        
+                        AppUpdateSettings(appUpdateViewModel)
+
                         Spacer(modifier = Modifier.weight(1f))
 
                         Button(
@@ -145,6 +151,84 @@ fun ProfileScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                             )
                         }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AppUpdateSettings(viewModel: AppUpdateViewModel) {
+    val state by viewModel.state.collectAsState()
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    val currentVersion = remember(context) {
+        try {
+            val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                "Version ${packageInfo.versionName} (${packageInfo.longVersionCode})"
+            } else {
+                @Suppress("DEPRECATION")
+                "Version ${packageInfo.versionName} (${packageInfo.versionCode})"
+            }
+        } catch (e: Exception) {
+            "Version Unknown"
+        }
+    }
+
+    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+        Text(text = currentVersion, style = MaterialTheme.typography.bodyMedium)
+        
+        Spacer(modifier = Modifier.height(8.dp))
+
+        when (state) {
+            is AppUpdateState.Idle -> {
+                Button(onClick = { viewModel.checkForUpdates() }) {
+                    Text("Check for Updates")
+                }
+            }
+            is AppUpdateState.Checking -> {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text("Checking for updates...")
+                }
+            }
+            is AppUpdateState.UpdateAvailable -> {
+                val info = (state as AppUpdateState.UpdateAvailable).versionInfo
+                Column {
+                    Text("Update available: ${info.versionName}", fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                    Text("Changelog: ${info.changelog}", style = MaterialTheme.typography.bodySmall)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(onClick = { viewModel.startDownload(info) }) {
+                        Text("Download & Install")
+                    }
+                }
+            }
+            is AppUpdateState.UpToDate -> {
+                Text("You're on the latest version", color = MaterialTheme.colorScheme.primary)
+                Spacer(modifier = Modifier.height(8.dp))
+                TextButton(onClick = { viewModel.checkForUpdates() }) {
+                    Text("Check Again")
+                }
+            }
+            is AppUpdateState.Downloading -> {
+                val progress = (state as AppUpdateState.Downloading).progress
+                Column {
+                    Text("Downloading... ${(progress * 100).toInt()}%")
+                    LinearProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+            is AppUpdateState.Error -> {
+                val message = (state as AppUpdateState.Error).message
+                Column {
+                    Text("Error: $message", color = MaterialTheme.colorScheme.error)
+                    Button(onClick = { viewModel.checkForUpdates() }) {
+                        Text("Retry")
                     }
                 }
             }
