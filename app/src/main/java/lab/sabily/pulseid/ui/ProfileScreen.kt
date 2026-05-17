@@ -80,7 +80,9 @@ fun ProfileScreen(
                     Text(text = error!!, color = MaterialTheme.colorScheme.error)
                 } else if (profile != null) {
                     Column(
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.Top,
                         horizontalAlignment = Alignment.Start
                     ) {
@@ -247,8 +249,8 @@ fun ProfileItem(label: String, value: String) {
 @Composable
 fun AppLockSettings(securityManager: SecurityManager, onNavigateToAppLockSetup: () -> Unit) {
     val context = androidx.compose.ui.platform.LocalContext.current
-    var isAppLockEnabled by remember { mutableStateOf(securityManager.isAppLockEnabled()) }
-    var isBiometricEnabled by remember { mutableStateOf(securityManager.isBiometricEnabled()) }
+    var isAppLockEnabled by remember(securityManager.isAppLockEnabled()) { mutableStateOf(securityManager.isAppLockEnabled()) }
+    var isBiometricEnabled by remember(securityManager.isBiometricEnabled()) { mutableStateOf(securityManager.isBiometricEnabled()) }
     
     val biometricManager = remember { BiometricManager.from(context) }
     val canAuthenticate = remember {
@@ -267,6 +269,10 @@ fun AppLockSettings(securityManager: SecurityManager, onNavigateToAppLockSetup: 
                 onCheckedChange = { enabled ->
                     if (enabled && securityManager.getAppLockPin() == null) {
                         onNavigateToAppLockSetup()
+                    } else if (!enabled) {
+                        securityManager.clearAppLock()
+                        isAppLockEnabled = false
+                        isBiometricEnabled = false
                     } else {
                         securityManager.setAppLockEnabled(enabled)
                         isAppLockEnabled = enabled
@@ -275,7 +281,7 @@ fun AppLockSettings(securityManager: SecurityManager, onNavigateToAppLockSetup: 
             )
         }
 
-        if (securityManager.getAppLockPin() != null) {
+        if (isAppLockEnabled && securityManager.getAppLockPin() != null) {
             TextButton(onClick = onNavigateToAppLockSetup) {
                 Text("Change PIN")
             }
@@ -317,6 +323,13 @@ fun AppLockSettings(securityManager: SecurityManager, onNavigateToAppLockSetup: 
                         }
                     )
                 }
+            } else {
+                Text(
+                    text = "Biometric unlock is not available on this device due to restrictions",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
             }
         }
     }

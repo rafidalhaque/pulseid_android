@@ -90,6 +90,7 @@ fun Esp32ManagementScreen(authApi: AuthApi, onBack: () -> Unit) {
                             Text("Fetching device status...", style = MaterialTheme.typography.bodyMedium)
                         } else {
                             StatusField("Uptime", pingResult?.uptime_ms?.let { DateUtils.formatUptime(it) } ?: "N/A")
+                            StatusField("NTP Time", pingResult?.ntp_time ?: "N/A")
                             StatusField("Free Heap", "${pingResult?.free_heap ?: "N/A"} bytes")
                             StatusField("WiFi IP", pingResult?.wifi_ip ?: "N/A")
                             

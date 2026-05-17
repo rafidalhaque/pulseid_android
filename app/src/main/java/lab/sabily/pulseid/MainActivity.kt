@@ -210,7 +210,8 @@ class MainActivity : FragmentActivity() {
                                             bleKeyManager = bleKeyManager,
                                             authApi = networkModule.api,
                                             isAdmin = isAdmin,
-                                            appLockViewModel = appLockViewModel
+                                            appLockViewModel = appLockViewModel,
+                                            securityManager = securityManager
                                         )
                                         1 -> AttendanceHistoryScreen(
                                             authApi = networkModule.api,
@@ -278,6 +279,7 @@ fun BleAdvertisingScreen(
     authApi: AuthApi,
     isAdmin: Boolean,
     appLockViewModel: AppLockViewModel,
+    securityManager: SecurityManager,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -342,12 +344,14 @@ fun BleAdvertisingScreen(
             TopAppBar(
                 title = { Text("PulseID") },
                 actions = {
-                    val isLocked by appLockViewModel.isLocked.collectAsState()
-                    IconButton(onClick = { appLockViewModel.lock() }) {
-                        Icon(
-                            imageVector = if (isLocked) Icons.Default.Lock else Icons.Default.LockOpen,
-                            contentDescription = if (isLocked) "Lock" else "Unlock"
-                        )
+                    if (securityManager.isAppLockEnabled()) {
+                        val isLocked by appLockViewModel.isLocked.collectAsState()
+                        IconButton(onClick = { appLockViewModel.lock() }) {
+                            Icon(
+                                imageVector = if (isLocked) Icons.Default.Lock else Icons.Default.LockOpen,
+                                contentDescription = if (isLocked) "Lock" else "Unlock"
+                            )
+                        }
                     }
                 }
             )

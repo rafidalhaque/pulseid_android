@@ -78,6 +78,14 @@ class SecurityManager(context: Context) {
         prefs.edit().putBoolean(KEY_APP_LOCK_BIOMETRIC_ENABLED, enabled).apply()
     }
 
+    fun clearAppLock() {
+        prefs.edit()
+            .remove(KEY_APP_LOCK_PIN)
+            .remove(KEY_APP_LOCK_BIOMETRIC_ENABLED)
+            .putBoolean(KEY_APP_LOCK_ENABLED, false)
+            .apply()
+    }
+
     fun verifyPin(pin: String): Boolean {
         val savedPin = getAppLockPin()
         return savedPin != null && savedPin == hashPin(pin)

@@ -239,6 +239,7 @@ data class Esp32PingResult(
     val free_heap: Int? = null,
     val wifi_ip: String? = null,
     val wifi_rssi: Int? = null,
+    val ntp_time: String? = null,
     val msg: String? = null
 )
 
