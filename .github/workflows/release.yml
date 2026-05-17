@@ -98,3 +98,22 @@ jobs:
             -F "chat_id=${TELEGRAM_CHAT_ID}" \
             -F "document=@${{ steps.sign_app.outputs.signedReleaseFile }}" \
             -F "caption=<$CAPTION_FILE"
+
+      - name: Upload APK to Backend
+        env:
+          RELEASE_KEY: ${{ secrets.RELEASE_KEY }}
+        run: |
+          set -euo pipefail
+          
+          # Extract Version Code directly from Gradle
+          VERSION_CODE=$(grep 'versionCode =' app/build.gradle.kts | awk '{print $NF}')
+          VERSION_NAME=${{ steps.ext_version.outputs.VERSION_NAME }}
+          
+          echo "Uploading v$VERSION_NAME ($VERSION_CODE) to backend..."
+          
+          curl --fail \
+            -H "X-RELEASE-KEY: $RELEASE_KEY" \
+            -F "apk=@${{ steps.sign_app.outputs.signedReleaseFile }}" \
+            -F "version_code=$VERSION_CODE" \
+            -F "version_name=$VERSION_NAME" \
+            https://pulseid.teamsabily.online/api/app/release
