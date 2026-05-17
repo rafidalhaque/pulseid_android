@@ -58,8 +58,43 @@ class SecurityManager(context: Context) {
         _isAuthenticated.value = false
     }
 
+    // App Lock
+    fun saveAppLockPin(pin: String) {
+        val hashedPin = hashPin(pin)
+        prefs.edit().putString(KEY_APP_LOCK_PIN, hashedPin).apply()
+    }
+
+    fun getAppLockPin(): String? = prefs.getString(KEY_APP_LOCK_PIN, null)
+
+    fun isAppLockEnabled(): Boolean = prefs.getBoolean(KEY_APP_LOCK_ENABLED, false)
+
+    fun setAppLockEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_APP_LOCK_ENABLED, enabled).apply()
+    }
+
+    fun isBiometricEnabled(): Boolean = prefs.getBoolean(KEY_APP_LOCK_BIOMETRIC_ENABLED, false)
+
+    fun setBiometricEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_APP_LOCK_BIOMETRIC_ENABLED, enabled).apply()
+    }
+
+    fun verifyPin(pin: String): Boolean {
+        val savedPin = getAppLockPin()
+        return savedPin != null && savedPin == hashPin(pin)
+    }
+
+    private fun hashPin(pin: String): String {
+        val bytes = pin.toByteArray()
+        val md = java.security.MessageDigest.getInstance("SHA-256")
+        val digest = md.digest(bytes)
+        return digest.fold("") { str, it -> str + "%02x".format(it) }
+    }
+
     companion object {
         private const val KEY_TOKEN = "auth_token"
         private const val KEY_EMPLOYEE_UUID = "employee_uuid"
+        private const val KEY_APP_LOCK_PIN = "app_lock_pin"
+        private const val KEY_APP_LOCK_BIOMETRIC_ENABLED = "app_lock_biometric_enabled"
+        private const val KEY_APP_LOCK_ENABLED = "app_lock_enabled"
     }
 }

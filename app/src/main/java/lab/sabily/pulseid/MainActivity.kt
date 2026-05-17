@@ -8,7 +8,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import androidx.activity.ComponentActivity
+import androidx.fragment.app.FragmentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -35,6 +35,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.EventNote
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.ui.text.font.FontWeight
 import androidx.core.content.ContextCompat
 import lab.sabily.pulseid.data.AttendanceRecord
@@ -52,10 +54,15 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import androidx.lifecycle.ProcessLifecycleOwner
+import androidx.lifecycle.ViewModelProvider
+import lab.sabily.pulseid.ui.*
 import java.text.SimpleDateFormat
 import java.util.*
 
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
+    private lateinit var appLockViewModel: AppLockViewModel
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -64,14 +71,23 @@ class MainActivity : ComponentActivity() {
         val networkModule = NetworkModule(securityManager)
         val bleKeyManager = BleKeyManager(networkModule.api, securityManager)
 
+        appLockViewModel = ViewModelProvider(this, AppLockViewModel.Factory(securityManager))[AppLockViewModel::class.java]
+        ProcessLifecycleOwner.get().lifecycle.addObserver(appLockViewModel)
+
         setContent {
             PulseIDTheme {
                 val isAuthenticated by securityManager.isAuthenticated.collectAsState()
+                val isLocked by appLockViewModel.isLocked.collectAsState()
                 var selectedTab by remember { mutableIntStateOf(0) }
                 var isAdmin by remember { mutableStateOf(false) }
+                var isSettingUpPin by remember { mutableStateOf(false) }
 
-                BackHandler(enabled = isAuthenticated && selectedTab != 0) {
-                    selectedTab = 0
+                BackHandler(enabled = (isAuthenticated && selectedTab != 0) || isSettingUpPin) {
+                    if (isSettingUpPin) {
+                        isSettingUpPin = false
+                    } else {
+                        selectedTab = 0
+                    }
                 }
 
                 LaunchedEffect(isAuthenticated) {
@@ -85,104 +101,124 @@ class MainActivity : ComponentActivity() {
                     } else {
                         isAdmin = false
                         selectedTab = 0
+                        isSettingUpPin = false
                     }
                 }
 
-                Scaffold(
-                    modifier = Modifier.fillMaxSize(),
-                    contentWindowInsets = WindowInsets(0, 0, 0, 0),
-                    bottomBar = {
-                        if (isAuthenticated) {
-                            NavigationBar {
-                                NavigationBarItem(
-                                    selected = selectedTab == 0,
-                                    onClick = { selectedTab = 0 },
-                                    icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
-                                    label = { Text("Home", style = MaterialTheme.typography.labelLarge) }
-                                )
-                                NavigationBarItem(
-                                    selected = selectedTab == 1,
-                                    onClick = { selectedTab = 1 },
-                                    icon = { Icon(Icons.Default.DateRange, contentDescription = "History") },
-                                    label = { Text("History", style = MaterialTheme.typography.labelLarge) }
-                                )
-                                if (isAdmin) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Scaffold(
+                        modifier = Modifier.fillMaxSize(),
+                        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+                        bottomBar = {
+                            if (isAuthenticated) {
+                                NavigationBar {
                                     NavigationBarItem(
-                                        selected = selectedTab == 2,
-                                        onClick = { selectedTab = 2 },
-                                        icon = { Icon(Icons.Default.SupervisorAccount, contentDescription = "Admin") },
-                                        label = { Text("Admin", style = MaterialTheme.typography.labelLarge) }
+                                        selected = selectedTab == 0,
+                                        onClick = { selectedTab = 0 },
+                                        icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
+                                        label = { Text("Home", style = MaterialTheme.typography.labelLarge) }
+                                    )
+                                    NavigationBarItem(
+                                        selected = selectedTab == 1,
+                                        onClick = { selectedTab = 1 },
+                                        icon = { Icon(Icons.Default.DateRange, contentDescription = "History") },
+                                        label = { Text("History", style = MaterialTheme.typography.labelLarge) }
+                                    )
+                                    if (isAdmin) {
+                                        NavigationBarItem(
+                                            selected = selectedTab == 2,
+                                            onClick = { selectedTab = 2 },
+                                            icon = { Icon(Icons.Default.SupervisorAccount, contentDescription = "Admin") },
+                                            label = { Text("Admin", style = MaterialTheme.typography.labelLarge) }
+                                        )
+                                    }
+                                    NavigationBarItem(
+                                        selected = if (isAdmin) selectedTab == 3 else selectedTab == 2,
+                                        onClick = { selectedTab = if (isAdmin) 3 else 2 },
+                                        icon = { Icon(Icons.Default.EventNote, contentDescription = "Leave") },
+                                        label = { Text("Leave", style = MaterialTheme.typography.labelLarge) }
+                                    )
+                                    NavigationBarItem(
+                                        selected = if (isAdmin) selectedTab == 4 else selectedTab == 3,
+                                        onClick = { selectedTab = if (isAdmin) 4 else 3 },
+                                        icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
+                                        label = { Text("Profile", style = MaterialTheme.typography.labelLarge) }
                                     )
                                 }
-                                NavigationBarItem(
-                                    selected = if (isAdmin) selectedTab == 3 else selectedTab == 2,
-                                    onClick = { selectedTab = if (isAdmin) 3 else 2 },
-                                    icon = { Icon(Icons.Default.EventNote, contentDescription = "Leave") },
-                                    label = { Text("Leave", style = MaterialTheme.typography.labelLarge) }
-                                )
-                                NavigationBarItem(
-                                    selected = if (isAdmin) selectedTab == 4 else selectedTab == 3,
-                                    onClick = { selectedTab = if (isAdmin) 4 else 3 },
-                                    icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
-                                    label = { Text("Profile", style = MaterialTheme.typography.labelLarge) }
-                                )
+                            }
+                        }
+                    ) { innerPadding ->
+                        if (!isAuthenticated) {
+                            LoginScreen(
+                                securityManager = securityManager,
+                                networkModule = networkModule,
+                                onLoginSuccess = { /* Flow will update automatically */ }
+                            )
+                        } else {
+                            Box(modifier = Modifier.padding(innerPadding)) {
+                                if (isSettingUpPin) {
+                                    AppLockSetupScreen(
+                                        securityManager = securityManager,
+                                        onBack = { isSettingUpPin = false }
+                                    )
+                                } else {
+                                    when (selectedTab) {
+                                        0 -> BleAdvertisingScreen(
+                                            bleKeyManager = bleKeyManager,
+                                            authApi = networkModule.api,
+                                            isAdmin = isAdmin,
+                                            appLockViewModel = appLockViewModel
+                                        )
+                                        1 -> AttendanceHistoryScreen(
+                                            authApi = networkModule.api,
+                                            isAdmin = isAdmin
+                                        )
+                                        2 -> {
+                                            if (isAdmin) {
+                                                AdminScreen(authApi = networkModule.api)
+                                            } else {
+                                                LeaveScreen(authApi = networkModule.api)
+                                            }
+                                        }
+                                        3 -> {
+                                            if (isAdmin) {
+                                                LeaveScreen(authApi = networkModule.api)
+                                            } else {
+                                                ProfileScreen(
+                                                    securityManager = securityManager,
+                                                    authApi = networkModule.api,
+                                                    onLogout = {
+                                                        securityManager.clearToken()
+                                                        bleKeyManager.clearSecret()
+                                                    },
+                                                    onNavigateToAppLockSetup = { isSettingUpPin = true }
+                                                )
+                                            }
+                                        }
+                                        4 -> {
+                                            if (isAdmin) {
+                                                ProfileScreen(
+                                                    securityManager = securityManager,
+                                                    authApi = networkModule.api,
+                                                    onLogout = {
+                                                        securityManager.clearToken()
+                                                        bleKeyManager.clearSecret()
+                                                    },
+                                                    onNavigateToAppLockSetup = { isSettingUpPin = true }
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
-                ) { innerPadding ->
-                    if (!isAuthenticated) {
-                        LoginScreen(
+
+                    if (isAuthenticated && isLocked) {
+                        AppLockScreen(
                             securityManager = securityManager,
-                            networkModule = networkModule,
-                            onLoginSuccess = { /* Flow will update automatically */ }
+                            appLockViewModel = appLockViewModel
                         )
-                    } else {
-                        Box(modifier = Modifier.padding(innerPadding)) {
-                            when (selectedTab) {
-                                0 -> BleAdvertisingScreen(
-                                    bleKeyManager = bleKeyManager,
-                                    authApi = networkModule.api,
-                                    isAdmin = isAdmin
-                                )
-                                1 -> AttendanceHistoryScreen(
-                                    authApi = networkModule.api,
-                                    isAdmin = isAdmin
-                                )
-                                2 -> {
-                                    if (isAdmin) {
-                                        AdminScreen(authApi = networkModule.api)
-                                    } else {
-                                        LeaveScreen(authApi = networkModule.api)
-                                    }
-                                }
-                                3 -> {
-                                    if (isAdmin) {
-                                        LeaveScreen(authApi = networkModule.api)
-                                    } else {
-                                        ProfileScreen(
-                                            securityManager = securityManager,
-                                            authApi = networkModule.api,
-                                            onLogout = {
-                                                securityManager.clearToken()
-                                                bleKeyManager.clearSecret()
-                                            }
-                                        )
-                                    }
-                                }
-                                4 -> {
-                                    if (isAdmin) {
-                                        ProfileScreen(
-                                            securityManager = securityManager,
-                                            authApi = networkModule.api,
-                                            onLogout = {
-                                                securityManager.clearToken()
-                                                bleKeyManager.clearSecret()
-                                            }
-                                        )
-                                    }
-                                }
-                            }
-                        }
                     }
                 }
             }
@@ -196,6 +232,7 @@ fun BleAdvertisingScreen(
     bleKeyManager: BleKeyManager,
     authApi: AuthApi,
     isAdmin: Boolean,
+    appLockViewModel: AppLockViewModel,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -255,115 +292,132 @@ fun BleAdvertisingScreen(
         }
     }
 
-    PullToRefreshBox(
-        isRefreshing = isRefreshing,
-        onRefresh = {
-            scope.launch {
-                fetchAttendanceData()
-            }
-        },
-        state = refreshState,
-        modifier = modifier.fillMaxSize()
-    ) {
-        val bluetoothEnableLauncher = rememberLauncherForActivityResult(
-            ActivityResultContracts.StartActivityForResult()
-        ) { result ->
-            if (result.resultCode == android.app.Activity.RESULT_OK) {
-                scope.launch {
-                    currentUuid = bleKeyManager.getDailyUuid()
-                    currentUuid?.let { bleAdvertiser.startAdvertising(it) }
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("PulseID") },
+                actions = {
+                    val isLocked by appLockViewModel.isLocked.collectAsState()
+                    IconButton(onClick = { appLockViewModel.lock() }) {
+                        Icon(
+                            imageVector = if (isLocked) Icons.Default.Lock else Icons.Default.LockOpen,
+                            contentDescription = if (isLocked) "Lock" else "Unlock"
+                        )
+                    }
                 }
-            }
-        }
-
-        val requiredPermissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            arrayOf(
-                Manifest.permission.BLUETOOTH_ADVERTISE,
-                Manifest.permission.BLUETOOTH_CONNECT
-            )
-        } else {
-            arrayOf(
-                Manifest.permission.BLUETOOTH,
-                Manifest.permission.BLUETOOTH_ADMIN,
-                Manifest.permission.ACCESS_FINE_LOCATION
             )
         }
-
-        val launcher = rememberLauncherForActivityResult(
-            ActivityResultContracts.RequestMultiplePermissions()
-        ) { permissions ->
-            val allGranted = permissions.entries.all { it.value }
-            if (allGranted) {
-                val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
-                val bluetoothAdapter = bluetoothManager.adapter
-                if (bluetoothAdapter?.isEnabled == false) {
-                    val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-                    bluetoothEnableLauncher.launch(enableBtIntent)
-                } else {
+    ) { padding ->
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = {
+                scope.launch {
+                    fetchAttendanceData()
+                }
+            },
+            state = refreshState,
+            modifier = modifier.fillMaxSize().padding(padding)
+        ) {
+            val bluetoothEnableLauncher = rememberLauncherForActivityResult(
+                ActivityResultContracts.StartActivityForResult()
+            ) { result ->
+                if (result.resultCode == android.app.Activity.RESULT_OK) {
                     scope.launch {
                         currentUuid = bleKeyManager.getDailyUuid()
                         currentUuid?.let { bleAdvertiser.startAdvertising(it) }
                     }
                 }
             }
-        }
 
-        val isAdvertising = status == "Started" || status == "Starting..."
-
-        Column(
-            modifier = Modifier.fillMaxSize().statusBarsPadding().padding(16.dp).verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.Top,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(text = "Status:", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 48.dp))
-            Text(text = status, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(bottom = 24.dp))
-
-            Button(
-                onClick = {
-                    if (isAdvertising) {
-                        bleAdvertiser.stopAdvertising()
-                    } else {
-                        val hasPermissions = requiredPermissions.all {
-                            ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
-                        }
-                        if (hasPermissions) {
-                            val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
-                            val bluetoothAdapter = bluetoothManager.adapter
-                            if (bluetoothAdapter?.isEnabled == false) {
-                                val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-                                bluetoothEnableLauncher.launch(enableBtIntent)
-                            } else {
-                                scope.launch {
-                                    currentUuid = bleKeyManager.getDailyUuid()
-                                    if (currentUuid != null) {
-                                        bleAdvertiser.startAdvertising(currentUuid!!)
-                                    }
-                                }
-                            }
-                        } else {
-                            launcher.launch(requiredPermissions)
-                        }
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(0.7f).padding(bottom = 32.dp)
-            ) {
-                Text(if (isAdvertising) "Stop" else "Start")
+            val requiredPermissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                arrayOf(
+                    Manifest.permission.BLUETOOTH_ADVERTISE,
+                    Manifest.permission.BLUETOOTH_CONNECT
+                )
+            } else {
+                arrayOf(
+                    Manifest.permission.BLUETOOTH,
+                    Manifest.permission.BLUETOOTH_ADMIN,
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            val launcher = rememberLauncherForActivityResult(
+                ActivityResultContracts.RequestMultiplePermissions()
+            ) { permissions ->
+                val allGranted = permissions.entries.all { it.value }
+                if (allGranted) {
+                    val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+                    val bluetoothAdapter = bluetoothManager.adapter
+                    if (bluetoothAdapter?.isEnabled == false) {
+                        val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+                        bluetoothEnableLauncher.launch(enableBtIntent)
+                    } else {
+                        scope.launch {
+                            currentUuid = bleKeyManager.getDailyUuid()
+                            currentUuid?.let { bleAdvertiser.startAdvertising(it) }
+                        }
+                    }
+                }
+            }
 
-            if (isAdmin) {
-                CurrentlyInOfficeCard(
-                    employees = presentEmployees,
-                    isLoading = isLoadingData
-                )
+            val isAdvertising = status == "Started" || status == "Starting..."
+
+            Column(
+                modifier = Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.Top,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(text = "Status:", style = MaterialTheme.typography.titleMedium)
+                Text(text = status, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(bottom = 24.dp))
+
+                Button(
+                    onClick = {
+                        if (isAdvertising) {
+                            bleAdvertiser.stopAdvertising()
+                        } else {
+                            val hasPermissions = requiredPermissions.all {
+                                ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
+                            }
+                            if (hasPermissions) {
+                                val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+                                val bluetoothAdapter = bluetoothManager.adapter
+                                if (bluetoothAdapter?.isEnabled == false) {
+                                    val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+                                    bluetoothEnableLauncher.launch(enableBtIntent)
+                                } else {
+                                    scope.launch {
+                                        currentUuid = bleKeyManager.getDailyUuid()
+                                        if (currentUuid != null) {
+                                            bleAdvertiser.startAdvertising(currentUuid!!)
+                                        }
+                                    }
+                                }
+                            } else {
+                                launcher.launch(requiredPermissions)
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(0.7f).padding(bottom = 32.dp)
+                ) {
+                    Text(if (isAdvertising) "Stop" else "Start")
+                }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                LeftTodayCard(
-                    employees = leftEmployees,
-                    isLoading = isLoadingData
-                )
+                if (isAdmin) {
+                    CurrentlyInOfficeCard(
+                        employees = presentEmployees,
+                        isLoading = isLoadingData
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    LeftTodayCard(
+                        employees = leftEmployees,
+                        isLoading = isLoadingData
+                    )
+                }
             }
         }
     }

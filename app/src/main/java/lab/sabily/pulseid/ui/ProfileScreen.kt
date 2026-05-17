@@ -18,9 +18,21 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import kotlinx.coroutines.launch
 
+import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG
+import androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
+import androidx.biometric.BiometricPrompt
+import androidx.core.content.ContextCompat
+import androidx.fragment.app.FragmentActivity
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreen(securityManager: SecurityManager, authApi: AuthApi, onLogout: () -> Unit) {
+fun ProfileScreen(
+    securityManager: SecurityManager,
+    authApi: AuthApi,
+    onLogout: () -> Unit,
+    onNavigateToAppLockSetup: () -> Unit
+) {
     var profile by remember { mutableStateOf<ProfileResponse?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -98,6 +110,11 @@ fun ProfileScreen(securityManager: SecurityManager, authApi: AuthApi, onLogout: 
                         ProfileItem(label = "Join Date", value = profile!!.employee.joinDate ?: "N/A")
                         ProfileItem(label = "ID Number", value = profile!!.employee.idNumber)
 
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
+                        Text(text = "App Lock", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                        
+                        AppLockSettings(securityManager, onNavigateToAppLockSetup)
+
                         Spacer(modifier = Modifier.weight(1f))
 
                         Button(
@@ -140,5 +157,83 @@ fun ProfileItem(label: String, value: String) {
     Column(modifier = Modifier.padding(bottom = 16.dp)) {
         Text(text = label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
         Text(text = value, style = MaterialTheme.typography.bodyLarge)
+    }
+}
+
+@Composable
+fun AppLockSettings(securityManager: SecurityManager, onNavigateToAppLockSetup: () -> Unit) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var isAppLockEnabled by remember { mutableStateOf(securityManager.isAppLockEnabled()) }
+    var isBiometricEnabled by remember { mutableStateOf(securityManager.isBiometricEnabled()) }
+    
+    val biometricManager = remember { BiometricManager.from(context) }
+    val canAuthenticate = remember {
+        biometricManager.canAuthenticate(BIOMETRIC_STRONG or DEVICE_CREDENTIAL) == BiometricManager.BIOMETRIC_SUCCESS
+    }
+
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("Enable App Lock")
+            Switch(
+                checked = isAppLockEnabled,
+                onCheckedChange = { enabled ->
+                    if (enabled && securityManager.getAppLockPin() == null) {
+                        onNavigateToAppLockSetup()
+                    } else {
+                        securityManager.setAppLockEnabled(enabled)
+                        isAppLockEnabled = enabled
+                    }
+                }
+            )
+        }
+
+        if (securityManager.getAppLockPin() != null) {
+            TextButton(onClick = onNavigateToAppLockSetup) {
+                Text("Change PIN")
+            }
+
+            if (canAuthenticate) {
+                val activity = context as FragmentActivity
+                val executor = remember { ContextCompat.getMainExecutor(context) }
+                val biometricPrompt = remember {
+                    BiometricPrompt(activity, executor, object : BiometricPrompt.AuthenticationCallback() {
+                        override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                            super.onAuthenticationSucceeded(result)
+                            securityManager.setBiometricEnabled(true)
+                            isBiometricEnabled = true
+                        }
+                    })
+                }
+
+                val promptInfo = BiometricPrompt.PromptInfo.Builder()
+                    .setTitle("Enable Biometric")
+                    .setSubtitle("Confirm your identity to enable biometric unlock")
+                    .setNegativeButtonText("Cancel")
+                    .build()
+
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Biometric Unlock")
+                    Switch(
+                        checked = isBiometricEnabled,
+                        onCheckedChange = { enabled ->
+                            if (enabled) {
+                                biometricPrompt.authenticate(promptInfo)
+                            } else {
+                                securityManager.setBiometricEnabled(false)
+                                isBiometricEnabled = false
+                            }
+                        }
+                    )
+                }
+            }
+        }
     }
 }
