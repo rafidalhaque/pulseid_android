@@ -1,0 +1,118 @@
+##version_1.18.3
+- fix: add missing scroll imports in ProfileScreen and bump version to 1.18.3
+- feat: enhance app lock security, make profile scrollable, and show ESP32 NTP time
+- feat: implement in-app update check and auto-check on launch
+- feat: implement local PIN + Biometric app lock
+- feat: transition ESP32 status to automatic polling and remove manual ping trigger
+- fix: resolve persistent loading state and implement polling in Esp32ManagementScreen
+- feat: implement ESP32 device management screen
+- feat: improve PDF export headers and attendance fetch error handling
+- feat: hide users with position=0 from employee views and counts
+- feat: change export icons to PDF and CSV specific icons
+- fix: resolve PDF generation error by adding android-awt compatibility library
+- fix: resolve OpenPDF AWT dependency error by upgrading to 2.0.3 and Java 17
+- fix: add user feedback and improve export robustness
+- fix: accurate attendance summary with unique day counting
+- fix: wrap dates in double quotes in CSV export to prevent column splitting
+- fix: resolve PDF export crash and improve export robustness
+- fix: employee dropdown, record sorting, and date parsing in attendance screens
+- Implement At A Glance Monthly Attendance Sheet with landscape PDF and CSV export
+- Update weekend logic to Friday only and add deviation columns to PDF export
+- Re-implement daily duration, sort attendance history chronological, and include duration in PDF/CSV exports
+- Fix build errors by switching to OpenPDF for attendance sheet export
+- Implement Monthly Attendance Sheet with PDF and CSV export
+
+##version_1.12.6
+- Increase top padding for Status text on home screen and bump version to 1.12.6
+
+##version_1.12.5
+- Show late/early/ot as hh:mm and bump version to 1.12.5
+
+##version_1.12.4
+- Show app version in Login and Profile screens and bump version to 1.12.4
+
+##version_1.12.3
+- Fix missing imports in HolidaysScreen.kt and bump version to 1.12.3
+- Add range holiday support to Add Holiday screen and holiday list
+- Refactor attendance history cards and fix holiday navigation
+- fix: ensure attendance status text appears by fixing timezone and parsing
+- feat: display late entry, early exit, and OT times in card columns instead of badges
+- fix(attendance): resolve badge rendering issue by improving date parsing
+- feat(leave): add date, status, and employee filtering
+- fix(work-policy): implement immediate navigation and auto-refresh
+- fix(leave): improve UI responsiveness, auto-refresh and resolve unknown employee names
+- feat: implement Leave management system with history, requests, and admin management
+- feat: add Late Entry, Early Exit, and Overtime indicators to Attendance History
+- fix: resolve excessive top padding in secondary screens
+- feat: implement Work Policy management (list, add, edit)
+- feat: implement Holidays list screen and integrate with Admin tab
+- feat: implement Add Holiday screen and API integration
+- feat: add snackbar feedback for ID copy in member detail and profile screens
+- feat: update ID label, unwrap UUID, and add copy functionality in MemberDetailScreen
+- chore: add keystore files to gitignore
+- fix: resolve compilation errors caused by race conditions
+- feat: ui enhancements, admin-only attendance cards, and nested back navigation
+- feat: ensure consistent Asia/Dhaka (UTC+6) timezone for all times and dates
+- feat: display all times in Asia/Dhaka timezone (UTC+6)
+- feat: display employee ID, rename members to employees, and sort by position
+- feat: add admin-only Add and Edit Employee features
+- refactor: update API endpoints for consistency
+- feat: add Left Today card and parallel attendance data fetching
+- feat: enhance UI typography, implement back press navigation, and fix import serialization
+- fix: resolve build errors in AttendanceLogScreen due to model refactoring
+- fix: resolve profile deserialization error and admin tab visibility
+- fix: broaden CSV file selection MIME types
+- style: reorder admin buttons
+- feat: implement All Members and Member Detail screens for admins
+- feat: implement Attendance Log screen for admins
+- feat: add Cache-Control: no-cache to force fresh api fetches
+- feat: implement swipe-to-refresh on Home, History, and Profile screens
+- feat: update attendance history API path, refresh login UI, and refactor admin tab
+
+##version_1.5.1
+- fix: handle nullable attendance record fields and bump version to 1.5.1
+
+##version_1.4.1
+- fix: update is_admin to boolean and bump version to 1.4.1
+
+##version_1.4.0
+- feat: implement 'Import Employee' admin feature and bump version to 1.4.0
+
+##version_1.3.0
+- feat: implement Attendance History screen and bump version to 1.3.0
+- fix: resolve unknown is_admin key in profile and add office polling
+- chore(release): enforce strict SemVer and update project instructions
+- fix(release): dynamically extract version from build.gradle.kts for releases
+
+##version_1.2.0
+- feat: implement 'Currently In Office' card and bump version to 1.2.0
+- fix(ble): ensure Bluetooth is enabled after permissions are granted
+- fix(icon): use #FBFBFB as app icon background color
+- fix(icon): change app icon background color to white
+- fix(icon): update application icons to use custom pulseid logo
+- fix(theme): add missing Color import in Theme.kt
+- fix(ble): resolve advertising issues and move logout to profile
+- style: change app background color to #FBFBFB across theme and launcher
+
+##version_1.1.0
+- chore: upgrade version to 1.1.0 across app and CI
+- feat: implement bottom navigation and profile screen with native HttpURLConnection
+- Merge pull request #3 from rafidalhaque/copilot/release-body-captions
+- Include release version in Telegram caption
+- Send release body as APK caption in Telegram notification
+- Merge pull request #2 from rafidalhaque/copilot/implement-upload-apk-to-telegram-chat
+- Adjust Telegram step env and curl file encoding syntax
+- Harden release body handling for Telegram notifications
+- Harden Telegram upload step error handling
+- Add Telegram APK upload after GitHub release
+- Merge pull request #1 from rafidalhaque/copilot/update-github-actions-permissions
+- ci: grant contents write permission for release workflow token
+- ci: switch to manual apksigner to fix build tools path error
+- ci: add GitHub Actions workflow for automated signed APK release
+- feat: add password visibility toggle to login screen
+- feat: make authentication state reactive and add detailed logging for debugging
+- ui: replace Start/Stop buttons with a single toggle button
+- feat: implement authenticated login, rotating BLE UUIDs, and secure storage
+- feat: implement basic BLE advertising with runtime permissions and status UI
+- feat: project initiation and declare permissions in manifest
+- feat: add .gitignore
