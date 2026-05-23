@@ -4,43 +4,49 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import androidx.lifecycle.viewmodel.compose.viewModel
 import lab.sabily.pulseid.data.*
+import java.text.SimpleDateFormat
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Esp32ManagementScreen(authApi: AuthApi, onBack: () -> Unit) {
-    // State
-    var pingResult by remember { mutableStateOf<Esp32PingResult?>(null) }
-    var isPingLoading by remember { mutableStateOf(false) }
-    var isRebootLoading by remember { mutableStateOf(false) }
-    var showRebootDialog by remember { mutableStateOf(false) }
-    
-    val scope = rememberCoroutineScope()
+fun Esp32ManagementScreen(
+    authApi: AuthApi,
+    onBack: () -> Unit,
+    viewModel: Esp32ManagementViewModel = viewModel(factory = Esp32ManagementViewModel.Factory(authApi))
+) {
+    val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    var showRebootDialog by remember { mutableStateOf(false) }
 
-    // Automatic polling
+    val dhakaZone = remember { TimeZone.getTimeZone("Asia/Dhaka") }
+    val displayFormat = remember { 
+        SimpleDateFormat("dd MMMM yyyy, hh:mm a", Locale.getDefault()).apply { timeZone = dhakaZone } 
+    }
+
     LaunchedEffect(Unit) {
-        while (true) {
-            isPingLoading = true
-            try {
-                val pingRes = authApi.esp32Ping()
-                if (pingRes.success) {
-                    pingResult = pingRes
-                }
-            } catch (e: Exception) {
-                // Silently ignore polling errors to avoid spamming the user
-            } finally {
-                isPingLoading = false
-            }
-            delay(10000)
+        viewModel.startPolling()
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.stopPolling()
+        }
+    }
+
+    LaunchedEffect(state.snackbarMessage) {
+        state.snackbarMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.onSnackbarShown()
         }
     }
 
@@ -52,6 +58,15 @@ fun Esp32ManagementScreen(authApi: AuthApi, onBack: () -> Unit) {
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { viewModel.ping() }, enabled = !state.isPingLoading) {
+                        if (state.isPingLoading) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                        } else {
+                            Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        }
                     }
                 }
             )
@@ -80,21 +95,53 @@ fun Esp32ManagementScreen(authApi: AuthApi, onBack: () -> Unit) {
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold
                             )
-                            if (isPingLoading) {
-                                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                            
+                            val statusText = if (state.isDeviceOnline) "Online" else "Offline"
+                            val statusColor = if (state.isDeviceOnline) Color(0xFF4CAF50) else MaterialTheme.colorScheme.error
+                            
+                            Surface(
+                                color = statusColor.copy(alpha = 0.1f),
+                                shape = MaterialTheme.shapes.small
+                            ) {
+                                Text(
+                                    text = statusText,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = statusColor,
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
                         }
+                        
                         Spacer(modifier = Modifier.height(16.dp))
                         
-                        if (pingResult == null) {
-                            Text("Fetching device status...", style = MaterialTheme.typography.bodyMedium)
-                        } else {
-                            StatusField("Uptime", pingResult?.uptime_ms?.let { DateUtils.formatUptime(it) } ?: "N/A")
-                            StatusField("NTP Time", pingResult?.ntp_time ?: "N/A")
-                            StatusField("Free Heap", "${pingResult?.free_heap ?: "N/A"} bytes")
-                            StatusField("WiFi IP", pingResult?.wifi_ip ?: "N/A")
+                        if (!state.isDeviceOnline) {
+                            Text(
+                                "Device Down",
+                                style = MaterialTheme.typography.headlineSmall,
+                                color = MaterialTheme.colorScheme.error,
+                                fontWeight = FontWeight.Bold
+                            )
                             
-                            val rssi = pingResult?.wifi_rssi
+                            val lastSeen = state.lastSeenPingResult?.ntp_time?.let { ntpTime ->
+                                DateUtils.parseFlexibleDate(ntpTime)?.let { date ->
+                                    displayFormat.format(date)
+                                }
+                            }
+                            
+                            Text(
+                                text = if (lastSeen != null) "Last seen: $lastSeen" else "Never connected",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        } else if (state.pingResult != null) {
+                            val pingRes = state.pingResult!!
+                            StatusField("Uptime", pingRes.uptime_ms?.let { DateUtils.formatUptime(it) } ?: "N/A")
+                            StatusField("NTP Time", pingRes.ntp_time ?: "N/A")
+                            StatusField("Free Heap", "${pingRes.free_heap ?: "N/A"} bytes")
+                            StatusField("WiFi IP", pingRes.wifi_ip ?: "N/A")
+                            
+                            val rssi = pingRes.wifi_rssi
                             val rssiLabel = when {
                                 rssi == null -> "N/A"
                                 rssi >= -60 -> "Strong"
@@ -105,10 +152,12 @@ fun Esp32ManagementScreen(authApi: AuthApi, onBack: () -> Unit) {
                             
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                "Last updated: Just now (auto-polls every 10s)",
+                                "Last updated: Just now (auto-polls every 30s)",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                        } else {
+                            Text("Fetching device status...", style = MaterialTheme.typography.bodyMedium)
                         }
                     }
                 }
@@ -130,10 +179,10 @@ fun Esp32ManagementScreen(authApi: AuthApi, onBack: () -> Unit) {
                         Button(
                             onClick = { showRebootDialog = true },
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                            enabled = !isRebootLoading,
+                            enabled = !state.isRebootLoading,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            if (isRebootLoading) {
+                            if (state.isRebootLoading) {
                                 CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onError)
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text("Rebooting...")
@@ -156,21 +205,7 @@ fun Esp32ManagementScreen(authApi: AuthApi, onBack: () -> Unit) {
                 TextButton(
                     onClick = {
                         showRebootDialog = false
-                        scope.launch {
-                            isRebootLoading = true
-                            try {
-                                val res = authApi.esp32Command(Esp32CommandRequest("reboot"))
-                                if (res.success) {
-                                    scope.launch { snackbarHostState.showSnackbar("Reboot command sent") }
-                                } else {
-                                    scope.launch { snackbarHostState.showSnackbar("Failed to send reboot command") }
-                                }
-                            } catch (e: Exception) {
-                                scope.launch { snackbarHostState.showSnackbar("Error: ${e.message}") }
-                            } finally {
-                                isRebootLoading = false
-                            }
-                        }
+                        viewModel.reboot()
                     }
                 ) {
                     Text("Reboot", color = MaterialTheme.colorScheme.error)
