@@ -42,6 +42,7 @@ import androidx.core.content.ContextCompat
 import lab.sabily.pulseid.data.AttendanceRecord
 import lab.sabily.pulseid.data.AuthApi
 import lab.sabily.pulseid.data.BleKeyManager
+import lab.sabily.pulseid.data.DateUtils
 import lab.sabily.pulseid.data.NetworkModule
 import lab.sabily.pulseid.data.SecurityManager
 import lab.sabily.pulseid.ui.AdminScreen
@@ -54,6 +55,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Job
 import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.lifecycle.ViewModelProvider
 import lab.sabily.pulseid.ui.*
@@ -287,6 +289,8 @@ fun BleAdvertisingScreen(
     val status by bleAdvertiser.status.collectAsState()
     var currentUuid by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+    var pollingJob by remember { mutableStateOf<Job?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
 
     var presentEmployees by remember { mutableStateOf<List<AttendanceRecord>>(emptyList()) }
     var leftEmployees by remember { mutableStateOf<List<AttendanceRecord>>(emptyList()) }
@@ -339,7 +343,41 @@ fun BleAdvertisingScreen(
         }
     }
 
+    LaunchedEffect(status) {
+        if (status == "Started") {
+            if (pollingJob == null || pollingJob?.isActive == false) {
+                pollingJob = launch {
+                    val startTime = System.currentTimeMillis()
+                    val dhakaZone = TimeZone.getTimeZone("Asia/Dhaka")
+                    while (System.currentTimeMillis() - startTime < 30000) {
+                        try {
+                            val present = authApi.getPresentEmployees()
+                            val now = Calendar.getInstance(dhakaZone).time
+                            val matched = present.any { record ->
+                                val entryDate = DateUtils.parseFlexibleTime(record.entryTime)
+                                entryDate != null && (now.time - entryDate.time) in 0..60000
+                            }
+                            if (matched) {
+                                bleAdvertiser.stopAdvertising()
+                                snackbarHostState.showSnackbar("Access Granted ✓")
+                                break
+                            }
+                        } catch (e: Exception) {
+                            android.util.Log.e("MainActivity", "Polling error", e)
+                        }
+                        delay(3000)
+                    }
+                    pollingJob = null
+                }
+            }
+        } else {
+            pollingJob?.cancel()
+            pollingJob = null
+        }
+    }
+
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("PulseID") },
