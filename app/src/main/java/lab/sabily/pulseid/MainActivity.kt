@@ -450,13 +450,31 @@ fun BleAdvertisingScreen(
 
             val isAdvertising = status == "Started" || status == "Starting..."
 
+            val statusColor = when {
+                status == "Started" -> androidx.compose.ui.graphics.Color(0xFF4CAF50)
+                status == "Starting..." -> androidx.compose.ui.graphics.Color(0xFFFFA000)
+                status.startsWith("Error") -> MaterialTheme.colorScheme.error
+                else -> MaterialTheme.colorScheme.onSurfaceVariant
+            }
+
+            val buttonColors = if (isAdvertising) {
+                ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+            } else {
+                ButtonDefaults.buttonColors()
+            }
+
             Column(
                 modifier = Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.Top,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(text = "Status:", style = MaterialTheme.typography.titleMedium)
-                Text(text = status, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(bottom = 24.dp))
+                Text(
+                    text = status,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = statusColor,
+                    modifier = Modifier.padding(bottom = 24.dp)
+                )
 
                 Button(
                     onClick = {
@@ -485,6 +503,7 @@ fun BleAdvertisingScreen(
                             }
                         }
                     },
+                    colors = buttonColors,
                     modifier = Modifier.fillMaxWidth(0.7f).padding(bottom = 32.dp)
                 ) {
                     Text(if (isAdvertising) "Stop" else "Start")
