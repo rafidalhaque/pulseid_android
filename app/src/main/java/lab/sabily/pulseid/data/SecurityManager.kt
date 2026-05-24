@@ -16,8 +16,10 @@ class SecurityManager(context: Context) {
     private val prefs = try {
         createPrefs(context)
     } catch (e: Exception) {
-        android.util.Log.e("SecurityManager", "Failed to create EncryptedSharedPreferences", e)
+        android.util.Log.e("SecurityManager", "Failed to create EncryptedSharedPreferences, performing full reset", e)
         context.deleteSharedPreferences("secure_pulseid_prefs")
+        // Also delete the keyset file used by EncryptedSharedPreferences
+        context.deleteSharedPreferences("__androidx_security_crypto_encrypted_prefs_keyset__")
         createPrefs(context)
     }
 
