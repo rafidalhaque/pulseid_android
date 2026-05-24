@@ -13,7 +13,15 @@ class SecurityManager(context: Context) {
         .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
         .build()
 
-    private val prefs = EncryptedSharedPreferences.create(
+    private val prefs = try {
+        createPrefs(context)
+    } catch (e: Exception) {
+        android.util.Log.e("SecurityManager", "Failed to create EncryptedSharedPreferences", e)
+        context.deleteSharedPreferences("secure_pulseid_prefs")
+        createPrefs(context)
+    }
+
+    private fun createPrefs(context: Context) = EncryptedSharedPreferences.create(
         context,
         "secure_pulseid_prefs",
         masterKey,
