@@ -33,7 +33,7 @@ class Esp32ManagementViewModel(private val authApi: AuthApi) : ViewModel() {
         pollingJob = viewModelScope.launch {
             while (true) {
                 ping()
-                delay(30000) // Poll every 30 seconds
+                delay(10000) // Poll every 10 seconds
             }
         }
     }
