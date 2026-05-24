@@ -40,7 +40,7 @@ fun LoginScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Image(
-            painter = painterResource(id = R.mipmap.pulseid),
+            painter = painterResource(id = R.mipmap.pulseid_foreground),
             contentDescription = "PulseID Logo",
             modifier = Modifier.size(120.dp)
         )
