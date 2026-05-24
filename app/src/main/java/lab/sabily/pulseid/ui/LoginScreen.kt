@@ -1,5 +1,6 @@
 package lab.sabily.pulseid.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
@@ -8,9 +9,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import lab.sabily.pulseid.R
 import lab.sabily.pulseid.data.LoginRequest
 import lab.sabily.pulseid.data.NetworkModule
 import lab.sabily.pulseid.data.SecurityManager
@@ -36,7 +39,11 @@ fun LoginScreen(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("PulseID", style = MaterialTheme.typography.headlineMedium)
+        Image(
+            painter = painterResource(id = R.mipmap.pulseid),
+            contentDescription = "PulseID Logo",
+            modifier = Modifier.size(120.dp)
+        )
         Text("Login with Your Credentials", style = MaterialTheme.typography.bodyMedium)
         Spacer(modifier = Modifier.height(32.dp))
 
