@@ -126,16 +126,20 @@ class NetworkModule(private val securityManager: SecurityManager) {
         .build()
 
     val api: AuthApi = Retrofit.Builder()
-        .baseUrl("https://pulseid.teamsabily.online")
+        .baseUrl(BASE_URL)
         .client(client)
         .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
         .build()
         .create(AuthApi::class.java)
 
     val updateApi: AppUpdateService = Retrofit.Builder()
-        .baseUrl("https://pulseid.teamsabily.online")
+        .baseUrl(BASE_URL)
         .client(client)
         .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
         .build()
         .create(AppUpdateService::class.java)
+
+    companion object {
+        const val BASE_URL = "https://pulseid.teamsabily.online"
+    }
 }

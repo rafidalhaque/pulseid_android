@@ -35,7 +35,7 @@ import okhttp3.ResponseBody
 import java.io.OutputStream
 
 data class NvsGeneratorState(
-    val baseUrl: String = "https://pulseid.teamsabily.online",
+    val baseUrl: String = lab.sabily.pulseid.data.NetworkModule.BASE_URL,
     val wifiSsid: String = "",
     val wifiPassword: String = "",
     val otaPassword: String = "",
@@ -47,7 +47,6 @@ class NvsGeneratorViewModel(private val authApi: AuthApi) : ViewModel() {
     private val _state = MutableStateFlow(NvsGeneratorState())
     val state: StateFlow<NvsGeneratorState> = _state.asStateFlow()
 
-    fun onBaseUrlChange(value: String) = _state.update { it.copy(baseUrl = value) }
     fun onWifiSsidChange(value: String) = _state.update { it.copy(wifiSsid = value) }
     fun onWifiPasswordChange(value: String) = _state.update { it.copy(wifiPassword = value) }
     fun onOtaPasswordChange(value: String) = _state.update { it.copy(otaPassword = value) }
@@ -164,10 +163,11 @@ fun NvsGeneratorScreen(
         ) {
             OutlinedTextField(
                 value = state.baseUrl,
-                onValueChange = { viewModel.onBaseUrlChange(it) },
+                onValueChange = { },
                 label = { Text("Base URL") },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                enabled = false
             )
 
             OutlinedTextField(
