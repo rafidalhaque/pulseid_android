@@ -113,7 +113,8 @@ jobs:
           
           curl --fail \
             -H "X-RELEASE-KEY: $RELEASE_KEY" \
-            -F "apk=@${{ steps.sign_app.outputs.signedReleaseFile }}" \
+            -F "platform=android" \
+            -F "released_file=@${{ steps.sign_app.outputs.signedReleaseFile }}" \
             -F "version_code=$VERSION_CODE" \
             -F "version_name=$VERSION_NAME" \
             https://pulseid.teamsabily.online/api/app/release
