@@ -22,6 +22,7 @@ import java.util.*
 fun Esp32ManagementScreen(
     authApi: AuthApi,
     onBack: () -> Unit,
+    onNavigateToNvsGenerator: () -> Unit,
     viewModel: Esp32ManagementViewModel = viewModel(factory = Esp32ManagementViewModel.Factory(authApi))
 ) {
     val state by viewModel.state.collectAsState()
@@ -189,6 +190,15 @@ fun Esp32ManagementScreen(
                             } else {
                                 Text("Reboot ESP32")
                             }
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        OutlinedButton(
+                            onClick = onNavigateToNvsGenerator,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Generate NVS")
                         }
                     }
                 }

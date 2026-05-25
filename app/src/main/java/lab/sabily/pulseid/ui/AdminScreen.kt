@@ -34,6 +34,7 @@ fun AdminScreen(authApi: AuthApi) {
             AdminSubScreen.ATTENDANCE_SHEET -> null
             AdminSubScreen.AT_A_GLANCE -> null
             AdminSubScreen.ESP32_MANAGEMENT -> null
+            AdminSubScreen.NVS_GENERATOR -> AdminSubScreen.ESP32_MANAGEMENT
             AdminSubScreen.ADD_HOLIDAY -> AdminSubScreen.HOLIDAYS
             AdminSubScreen.ADD_WORK_POLICY -> AdminSubScreen.WORK_POLICY
             AdminSubScreen.EDIT_WORK_POLICY -> AdminSubScreen.WORK_POLICY
@@ -48,13 +49,20 @@ fun AdminScreen(authApi: AuthApi) {
         AdminSubScreen.ESP32_MANAGEMENT -> {
             Esp32ManagementScreen(
                 authApi = authApi,
-                onBack = { currentSubScreen = null }
+                onBack = { currentSubScreen = null },
+                onNavigateToNvsGenerator = { currentSubScreen = AdminSubScreen.NVS_GENERATOR }
             )
         }
         AdminSubScreen.AT_A_GLANCE -> {
             AtAGlanceScreen(
                 authApi = authApi,
                 onBack = { currentSubScreen = null }
+            )
+        }
+        AdminSubScreen.NVS_GENERATOR -> {
+            NvsGeneratorScreen(
+                authApi = authApi,
+                onBack = { currentSubScreen = AdminSubScreen.ESP32_MANAGEMENT }
             )
         }
         AdminSubScreen.ATTENDANCE_SHEET -> {
@@ -285,5 +293,5 @@ fun AdminScreen(authApi: AuthApi) {
 }
 
 enum class AdminSubScreen {
-    IMPORT, LOGS, ALL_EMPLOYEES, EMPLOYEE_DETAIL, ADD_EMPLOYEE, EDIT_EMPLOYEE, ADD_HOLIDAY, HOLIDAYS, WORK_POLICY, ADD_WORK_POLICY, EDIT_WORK_POLICY, LEAVE_REQUESTS, ATTENDANCE_SHEET, AT_A_GLANCE, ESP32_MANAGEMENT
+    IMPORT, LOGS, ALL_EMPLOYEES, EMPLOYEE_DETAIL, ADD_EMPLOYEE, EDIT_EMPLOYEE, ADD_HOLIDAY, HOLIDAYS, WORK_POLICY, ADD_WORK_POLICY, EDIT_WORK_POLICY, LEAVE_REQUESTS, ATTENDANCE_SHEET, AT_A_GLANCE, ESP32_MANAGEMENT, NVS_GENERATOR
 }

@@ -92,5 +92,6 @@ class Esp32ManagementViewModelTest {
                 Esp32PingResult(success = false)
             }
         }
+        override suspend fun generateNvs(request: NvsGeneratorRequest): okhttp3.ResponseBody = TODO()
     }
 }

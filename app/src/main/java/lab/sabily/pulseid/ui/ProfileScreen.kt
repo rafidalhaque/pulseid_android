@@ -203,7 +203,6 @@ fun AppUpdateSettings(viewModel: AppUpdateViewModel) {
                 val info = (state as AppUpdateState.UpdateAvailable).versionInfo
                 Column {
                     Text("Update available: ${info.versionName}", fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
-                    Text("Changelog: ${info.changelog}", style = MaterialTheme.typography.bodySmall)
                     Spacer(modifier = Modifier.height(8.dp))
                     Button(onClick = { viewModel.startDownload(info) }) {
                         Text("Download & Install")

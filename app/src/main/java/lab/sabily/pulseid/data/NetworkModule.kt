@@ -83,11 +83,14 @@ interface AuthApi {
 
     @GET("/api/admin/esp32/ping")
     suspend fun esp32Ping(): Esp32PingResult
+
+    @POST("/api/iot/esp32/nvs")
+    suspend fun generateNvs(@Body request: NvsGeneratorRequest): okhttp3.ResponseBody
 }
 
 interface AppUpdateService {
     @GET("/api/app/version")
-    suspend fun getLatestVersion(): VersionInfo
+    suspend fun getLatestVersion(@Query("platform") platform: String = "android"): VersionInfo
 }
 
 class NetworkModule(private val securityManager: SecurityManager) {

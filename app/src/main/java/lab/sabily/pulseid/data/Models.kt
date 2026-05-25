@@ -254,9 +254,16 @@ data class Esp32CommandResult(
 )
 
 @Serializable
+data class NvsGeneratorRequest(
+    val base_url: String,
+    val wifi_ssid: String,
+    val wifi_password: String,
+    val ota_password: String
+)
+
+@Serializable
 data class VersionInfo(
     @SerialName("version_code") val versionCode: Int,
     @SerialName("version_name") val versionName: String,
-    @SerialName("download_url") val downloadUrl: String,
-    val changelog: String
+    @SerialName("download_url") val downloadUrl: String
 )

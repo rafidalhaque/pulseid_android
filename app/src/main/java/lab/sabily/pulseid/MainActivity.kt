@@ -108,7 +108,6 @@ class MainActivity : FragmentActivity() {
                             Column {
                                 Text("A new version of PulseID is available: ${info.versionName}")
                                 Spacer(modifier = Modifier.height(8.dp))
-                                Text("Changelog: ${info.changelog}", style = MaterialTheme.typography.bodySmall)
                             }
                         },
                         confirmButton = {
