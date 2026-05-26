@@ -41,14 +41,29 @@ class SecurityManager(context: Context) {
     }
 
     fun getToken(): String? {
-        val token = prefs.getString(KEY_TOKEN, null)
+        val token = prefs.getString(KEY_JWT_TOKEN, null) ?: prefs.getString(KEY_TOKEN, null)
         android.util.Log.d("SecurityManager", "Getting token: ${token?.take(10)}...")
         return token
     }
 
+    fun saveJwtToken(token: String) {
+        prefs.edit().putString(KEY_JWT_TOKEN, token).apply()
+        _isAuthenticated.value = true
+    }
+
+    fun saveBaseUrl(url: String) {
+        prefs.edit().putString(KEY_BASE_URL, url).apply()
+    }
+
+    fun getBaseUrl(): String? = prefs.getString(KEY_BASE_URL, null)
+
+    fun clearBaseUrl() {
+        prefs.edit().remove(KEY_BASE_URL).apply()
+    }
+
     fun clearToken() {
         android.util.Log.d("SecurityManager", "Clearing token")
-        prefs.edit().remove(KEY_TOKEN).apply()
+        prefs.edit().remove(KEY_TOKEN).remove(KEY_JWT_TOKEN).apply()
         _isAuthenticated.value = false
     }
 
@@ -110,6 +125,8 @@ class SecurityManager(context: Context) {
 
     companion object {
         private const val KEY_TOKEN = "auth_token"
+        private const val KEY_JWT_TOKEN = "jwt_token"
+        private const val KEY_BASE_URL = "base_url"
         private const val KEY_EMPLOYEE_UUID = "employee_uuid"
         private const val KEY_APP_LOCK_PIN = "app_lock_pin"
         private const val KEY_APP_LOCK_BIOMETRIC_ENABLED = "app_lock_biometric_enabled"

@@ -39,6 +39,9 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.ui.text.font.FontWeight
 import androidx.core.content.ContextCompat
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import lab.sabily.pulseid.data.AttendanceRecord
 import lab.sabily.pulseid.data.AuthApi
 import lab.sabily.pulseid.data.BleKeyManager
@@ -54,6 +57,9 @@ import lab.sabily.pulseid.ui.LoginScreen
 import lab.sabily.pulseid.ui.ProfileScreen
 import lab.sabily.pulseid.ui.LocalOfficeTz
 import lab.sabily.pulseid.ui.theme.PulseIDTheme
+import lab.sabily.pulseid.ui.onboarding.WelcomeScreen
+import lab.sabily.pulseid.ui.onboarding.ServerSetupScreen
+import lab.sabily.pulseid.ui.onboarding.OnboardingLoginScreen
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -87,195 +93,256 @@ class MainActivity : FragmentActivity() {
             PulseIDTheme {
                 val officeTz by settingsManager.officeTz.collectAsState(initial = SettingsManager.DEFAULT_TZ)
                 CompositionLocalProvider(LocalOfficeTz provides officeTz) {
-                    val isAuthenticated by securityManager.isAuthenticated.collectAsState()
-                val isLocked by appLockViewModel.isLocked.collectAsState()
-                val updateState by appUpdateViewModel.state.collectAsState()
-                var selectedTab by remember { mutableIntStateOf(0) }
-                var isAdmin by remember { mutableStateOf(false) }
-                var isSettingUpPin by remember { mutableStateOf(false) }
-                var showUpdateDialog by remember { mutableStateOf(false) }
-
-                LaunchedEffect(Unit) {
-                    appUpdateViewModel.checkForUpdates(silent = true)
-                }
-
-                LaunchedEffect(updateState) {
-                    if (updateState is AppUpdateState.UpdateAvailable) {
-                        showUpdateDialog = true
-                    }
-                }
-
-                if (showUpdateDialog && updateState is AppUpdateState.UpdateAvailable) {
-                    val info = (updateState as AppUpdateState.UpdateAvailable).versionInfo
-                    AlertDialog(
-                        onDismissRequest = { showUpdateDialog = false },
-                        title = { Text("Update Available") },
-                        text = {
-                            Column {
-                                Text("A new version of PulseID is available: ${info.versionName}")
-                                Spacer(modifier = Modifier.height(8.dp))
-                            }
-                        },
-                        confirmButton = {
-                            Button(onClick = {
-                                appUpdateViewModel.startDownload(info)
-                                showUpdateDialog = false
-                            }) {
-                                Text("Update Now")
-                            }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = { showUpdateDialog = false }) {
-                                Text("Later")
-                            }
+                    val navController = rememberNavController()
+                    val startDestination = remember {
+                        if (securityManager.getToken() != null && securityManager.getBaseUrl() != null) {
+                            "main"
+                        } else {
+                            "onboarding/welcome"
                         }
-                    )
-                }
-
-                BackHandler(enabled = (isAuthenticated && selectedTab != 0) || isSettingUpPin) {
-                    if (isSettingUpPin) {
-                        isSettingUpPin = false
-                    } else {
-                        selectedTab = 0
                     }
-                }
 
-                LaunchedEffect(isAuthenticated) {
-                    if (isAuthenticated) {
-                        try {
-                            val response = networkModule.api.getProfile()
-                            isAdmin = response.employee.isAdmin
-                        } catch (e: Exception) {
-                            android.util.Log.e("MainActivity", "Failed to fetch profile for admin check", e)
+                    NavHost(navController = navController, startDestination = startDestination) {
+                        composable("onboarding/welcome") {
+                            WelcomeScreen(onGetStarted = { navController.navigate("onboarding/server") })
                         }
-                    } else {
-                        isAdmin = false
-                        selectedTab = 0
-                        isSettingUpPin = false
-                    }
-                }
-
-                Box(modifier = Modifier.fillMaxSize()) {
-                    Scaffold(
-                        modifier = Modifier.fillMaxSize(),
-                        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-                        bottomBar = {
-                            if (isAuthenticated) {
-                                NavigationBar {
-                                    NavigationBarItem(
-                                        selected = selectedTab == 0,
-                                        onClick = { selectedTab = 0 },
-                                        icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
-                                        label = { Text("Home", style = MaterialTheme.typography.labelLarge) }
-                                    )
-                                    NavigationBarItem(
-                                        selected = selectedTab == 1,
-                                        onClick = { selectedTab = 1 },
-                                        icon = { Icon(Icons.Default.DateRange, contentDescription = "History") },
-                                        label = { Text("History", style = MaterialTheme.typography.labelLarge) }
-                                    )
-                                    if (isAdmin) {
-                                        NavigationBarItem(
-                                            selected = selectedTab == 2,
-                                            onClick = { selectedTab = 2 },
-                                            icon = { Icon(Icons.Default.SupervisorAccount, contentDescription = "Admin") },
-                                            label = { Text("Admin", style = MaterialTheme.typography.labelLarge) }
-                                        )
-                                    }
-                                    NavigationBarItem(
-                                        selected = if (isAdmin) selectedTab == 3 else selectedTab == 2,
-                                        onClick = { selectedTab = if (isAdmin) 3 else 2 },
-                                        icon = { Icon(Icons.Default.EventNote, contentDescription = "Leave") },
-                                        label = { Text("Leave", style = MaterialTheme.typography.labelLarge) }
-                                    )
-                                    NavigationBarItem(
-                                        selected = if (isAdmin) selectedTab == 4 else selectedTab == 3,
-                                        onClick = { selectedTab = if (isAdmin) 4 else 3 },
-                                        icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
-                                        label = { Text("Profile", style = MaterialTheme.typography.labelLarge) }
-                                    )
-                                }
-                            }
+                        composable("onboarding/server") {
+                            ServerSetupScreen(
+                                securityManager = securityManager,
+                                networkModule = networkModule,
+                                onServerConnected = { navController.navigate("onboarding/login") }
+                            )
                         }
-                    ) { innerPadding ->
-                        if (!isAuthenticated) {
-                            LoginScreen(
+                        composable("onboarding/login") {
+                            OnboardingLoginScreen(
                                 securityManager = securityManager,
                                 settingsManager = settingsManager,
                                 networkModule = networkModule,
-                                onLoginSuccess = { /* Flow will update automatically */ }
-                            )
-                        } else {
-                            Box(modifier = Modifier.padding(innerPadding)) {
-                                if (isSettingUpPin) {
-                                    AppLockSetupScreen(
-                                        securityManager = securityManager,
-                                        onBack = { isSettingUpPin = false }
-                                    )
-                                } else {
-                                    when (selectedTab) {
-                                        0 -> BleAdvertisingScreen(
-                                            bleKeyManager = bleKeyManager,
-                                            authApi = networkModule.api,
-                                            isAdmin = isAdmin,
-                                            appLockViewModel = appLockViewModel,
-                                            securityManager = securityManager
-                                        )
-                                        1 -> AttendanceHistoryScreen(
-                                            authApi = networkModule.api,
-                                            isAdmin = isAdmin
-                                        )
-                                        2 -> {
-                                            if (isAdmin) {
-                                                AdminScreen(authApi = networkModule.api)
-                                            } else {
-                                                LeaveScreen(authApi = networkModule.api)
-                                            }
-                                        }
-                                        3 -> {
-                                            if (isAdmin) {
-                                                LeaveScreen(authApi = networkModule.api)
-                                            } else {
-                                                ProfileScreen(
-                                                    securityManager = securityManager,
-                                                    authApi = networkModule.api,
-                                                    onLogout = {
-                                                        securityManager.clearToken()
-                                                        bleKeyManager.clearSecret()
-                                                    },
-                                                    onNavigateToAppLockSetup = { isSettingUpPin = true },
-                                                    appUpdateViewModel = appUpdateViewModel
-                                                )
-                                            }
-                                        }
-                                        4 -> {
-                                            if (isAdmin) {
-                                                ProfileScreen(
-                                                    securityManager = securityManager,
-                                                    authApi = networkModule.api,
-                                                    onLogout = {
-                                                        securityManager.clearToken()
-                                                        bleKeyManager.clearSecret()
-                                                    },
-                                                    onNavigateToAppLockSetup = { isSettingUpPin = true },
-                                                    appUpdateViewModel = appUpdateViewModel
-                                                )
-                                            }
-                                        }
+                                onLoginSuccess = {
+                                    navController.navigate("main") {
+                                        popUpTo(0) { inclusive = true }
                                     }
                                 }
-                            }
+                            )
+                        }
+                        composable("main") {
+                            MainAppContent(
+                                securityManager = securityManager,
+                                settingsManager = settingsManager,
+                                networkModule = networkModule,
+                                bleKeyManager = bleKeyManager,
+                                appLockViewModel = appLockViewModel,
+                                appUpdateViewModel = appUpdateViewModel,
+                                onLogout = {
+                                    navController.navigate("onboarding/welcome") {
+                                        popUpTo(0) { inclusive = true }
+                                    }
+                                }
+                            )
                         }
                     }
+                }
+            }
+        }
+    }
+}
 
-                    if (isAuthenticated && isLocked) {
-                        AppLockScreen(
-                            securityManager = securityManager,
-                            appLockViewModel = appLockViewModel
+@Composable
+fun MainAppContent(
+    securityManager: SecurityManager,
+    settingsManager: SettingsManager,
+    networkModule: NetworkModule,
+    bleKeyManager: BleKeyManager,
+    appLockViewModel: AppLockViewModel,
+    appUpdateViewModel: AppUpdateViewModel,
+    onLogout: () -> Unit
+) {
+    val isAuthenticated by securityManager.isAuthenticated.collectAsState()
+    
+    LaunchedEffect(isAuthenticated) {
+        if (!isAuthenticated) {
+            onLogout()
+        }
+    }
+
+    if (!isAuthenticated) return
+
+    val isLocked by appLockViewModel.isLocked.collectAsState()
+    val updateState by appUpdateViewModel.state.collectAsState()
+    var selectedTab by remember { mutableIntStateOf(0) }
+    var isAdmin by remember { mutableStateOf(false) }
+    var isSettingUpPin by remember { mutableStateOf(false) }
+    var showUpdateDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        appUpdateViewModel.checkForUpdates(silent = true)
+    }
+
+    LaunchedEffect(updateState) {
+        if (updateState is AppUpdateState.UpdateAvailable) {
+            showUpdateDialog = true
+        }
+    }
+
+    if (showUpdateDialog && updateState is AppUpdateState.UpdateAvailable) {
+        val info = (updateState as AppUpdateState.UpdateAvailable).versionInfo
+        AlertDialog(
+            onDismissRequest = { showUpdateDialog = false },
+            title = { Text("Update Available") },
+            text = {
+                Column {
+                    Text("A new version of PulseID is available: ${info.versionName}")
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    appUpdateViewModel.startDownload(info)
+                    showUpdateDialog = false
+                }) {
+                    Text("Update Now")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showUpdateDialog = false }) {
+                    Text("Later")
+                }
+            }
+        )
+    }
+
+    BackHandler(enabled = (isAuthenticated && selectedTab != 0) || isSettingUpPin) {
+        if (isSettingUpPin) {
+            isSettingUpPin = false
+        } else {
+            selectedTab = 0
+        }
+    }
+
+    LaunchedEffect(isAuthenticated) {
+        if (isAuthenticated) {
+            try {
+                val response = networkModule.api.getProfile()
+                isAdmin = response.employee.isAdmin
+            } catch (e: Exception) {
+                android.util.Log.e("MainActivity", "Failed to fetch profile for admin check", e)
+            }
+        } else {
+            isAdmin = false
+            selectedTab = 0
+            isSettingUpPin = false
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
+            bottomBar = {
+                if (isAuthenticated) {
+                    NavigationBar {
+                        NavigationBarItem(
+                            selected = selectedTab == 0,
+                            onClick = { selectedTab = 0 },
+                            icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
+                            label = { Text("Home", style = MaterialTheme.typography.labelLarge) }
+                        )
+                        NavigationBarItem(
+                            selected = selectedTab == 1,
+                            onClick = { selectedTab = 1 },
+                            icon = { Icon(Icons.Default.DateRange, contentDescription = "History") },
+                            label = { Text("History", style = MaterialTheme.typography.labelLarge) }
+                        )
+                        if (isAdmin) {
+                            NavigationBarItem(
+                                selected = selectedTab == 2,
+                                onClick = { selectedTab = 2 },
+                                icon = { Icon(Icons.Default.SupervisorAccount, contentDescription = "Admin") },
+                                label = { Text("Admin", style = MaterialTheme.typography.labelLarge) }
+                            )
+                        }
+                        NavigationBarItem(
+                            selected = if (isAdmin) selectedTab == 3 else selectedTab == 2,
+                            onClick = { selectedTab = if (isAdmin) 3 else 2 },
+                            icon = { Icon(Icons.Default.EventNote, contentDescription = "Leave") },
+                            label = { Text("Leave", style = MaterialTheme.typography.labelLarge) }
+                        )
+                        NavigationBarItem(
+                            selected = if (isAdmin) selectedTab == 4 else selectedTab == 3,
+                            onClick = { selectedTab = if (isAdmin) 4 else 3 },
+                            icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
+                            label = { Text("Profile", style = MaterialTheme.typography.labelLarge) }
                         )
                     }
                 }
             }
+        ) { innerPadding ->
+            Box(modifier = Modifier.padding(innerPadding)) {
+                if (isSettingUpPin) {
+                    AppLockSetupScreen(
+                        securityManager = securityManager,
+                        onBack = { isSettingUpPin = false }
+                    )
+                } else {
+                    when (selectedTab) {
+                        0 -> BleAdvertisingScreen(
+                            bleKeyManager = bleKeyManager,
+                            authApi = networkModule.api,
+                            isAdmin = isAdmin,
+                            appLockViewModel = appLockViewModel,
+                            securityManager = securityManager
+                        )
+                        1 -> AttendanceHistoryScreen(
+                            authApi = networkModule.api,
+                            isAdmin = isAdmin
+                        )
+                        2 -> {
+                            if (isAdmin) {
+                                AdminScreen(authApi = networkModule.api)
+                            } else {
+                                LeaveScreen(authApi = networkModule.api)
+                            }
+                        }
+                        3 -> {
+                            if (isAdmin) {
+                                LeaveScreen(authApi = networkModule.api)
+                            } else {
+                                ProfileScreen(
+                                    securityManager = securityManager,
+                                    authApi = networkModule.api,
+                                    onLogout = {
+                                        securityManager.clearToken()
+                                        bleKeyManager.clearSecret()
+                                    },
+                                    onNavigateToAppLockSetup = { isSettingUpPin = true },
+                                    appUpdateViewModel = appUpdateViewModel
+                                )
+                            }
+                        }
+                        4 -> {
+                            if (isAdmin) {
+                                ProfileScreen(
+                                    securityManager = securityManager,
+                                    authApi = networkModule.api,
+                                    onLogout = {
+                                        securityManager.clearToken()
+                                        bleKeyManager.clearSecret()
+                                    },
+                                    onNavigateToAppLockSetup = { isSettingUpPin = true },
+                                    appUpdateViewModel = appUpdateViewModel
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (isAuthenticated && isLocked) {
+            AppLockScreen(
+                securityManager = securityManager,
+                appLockViewModel = appLockViewModel
+            )
         }
     }
 }

@@ -10,6 +10,12 @@ data class LoginRequest(
 )
 
 @Serializable
+data class OnboardingLoginRequest(
+    @SerialName("employee_id") val employeeId: String,
+    val password: String
+)
+
+@Serializable
 data class LoginResponse(
     val success: Boolean,
     val token: String

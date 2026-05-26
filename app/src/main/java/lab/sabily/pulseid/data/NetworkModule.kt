@@ -17,8 +17,14 @@ import retrofit2.http.Query
 import okhttp3.MultipartBody
 
 interface AuthApi {
+    @GET("/api/health")
+    suspend fun healthCheck(): GenericResponse
+
     @POST("/api/login")
     suspend fun login(@Body request: LoginRequest): LoginResponse
+
+    @POST("/api/auth/login")
+    suspend fun onboardingLogin(@Body request: OnboardingLoginRequest): LoginResponse
 
     @GET("/api/profile")
     suspend fun getProfile(): ProfileResponse
@@ -113,7 +119,6 @@ class NetworkModule(private val securityManager: SecurityManager) {
         
         if (response.code == 401) {
             securityManager.clearToken()
-            // In a real app, we might trigger a re-login event/callback here
         }
         
         response
@@ -128,19 +133,18 @@ class NetworkModule(private val securityManager: SecurityManager) {
         .addInterceptor(loggingInterceptor)
         .build()
 
-    val api: AuthApi = Retrofit.Builder()
-        .baseUrl(BASE_URL)
-        .client(client)
-        .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
-        .build()
-        .create(AuthApi::class.java)
+    val api: AuthApi get() = buildRetrofit(securityManager.getBaseUrl() ?: BASE_URL).create(AuthApi::class.java)
 
-    val updateApi: AppUpdateService = Retrofit.Builder()
-        .baseUrl(BASE_URL)
-        .client(client)
-        .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
-        .build()
-        .create(AppUpdateService::class.java)
+    val updateApi: AppUpdateService get() = buildRetrofit(securityManager.getBaseUrl() ?: BASE_URL).create(AppUpdateService::class.java)
+
+    private fun buildRetrofit(baseUrl: String): Retrofit {
+        val url = if (baseUrl.endsWith("/")) baseUrl else "$baseUrl/"
+        return Retrofit.Builder()
+            .baseUrl(url)
+            .client(client)
+            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+            .build()
+    }
 
     companion object {
         const val BASE_URL = "https://pulseid.teamsabily.online"
