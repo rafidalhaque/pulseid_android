@@ -87,7 +87,17 @@ fun LoginScreen(
                         val response = networkModule.api.login(LoginRequest(employee_id = employeeId, password = password))
                         if (response.success) {
                             securityManager.saveJwtToken(response.token)
-                            securityManager.saveEmployeeUuid(employeeId)
+                            
+                            // Fetch profile to get real UUID and admin status
+                            try {
+                                val profileResponse = networkModule.api.getProfile()
+                                if (profileResponse.success) {
+                                    securityManager.saveEmployeeUuid(profileResponse.employee.id)
+                                }
+                            } catch (e: Exception) {
+                                // Fallback to employeeId if profile fetch fails
+                                securityManager.saveEmployeeUuid(employeeId)
+                            }
                             
                             // Fire and forget timezone sync
                             launch {

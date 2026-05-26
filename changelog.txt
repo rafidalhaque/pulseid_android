@@ -1,3 +1,8 @@
+##version_1.20.5
+- fix: align login request field name with backend ('uuid')
+- feat: restore canonical UUID retrieval from profile after login
+- bump version to 1.20.5 (101)
+
 ##version_1.20.4
 - feat: unify token storage and simplify identifier handling
 - remove redundant KEY_TOKEN and consolidate to KEY_JWT_TOKEN
