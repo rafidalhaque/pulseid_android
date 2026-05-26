@@ -1,3 +1,7 @@
+##version_1.20.2
+- perf: optimize onboarding navigation responsiveness by parallelizing snackbar
+- bump version to 1.20.2 (98)
+
 ##version_1.20.1
 - feat: match onboarding background with theme and update login API path
 - bump version to 1.20.1 (97)

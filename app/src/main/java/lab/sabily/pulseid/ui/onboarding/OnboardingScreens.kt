@@ -187,17 +187,20 @@ fun ServerSetupScreen(
                                 securityManager.saveBaseUrl(url)
                                 val response = networkModule.api.healthCheck()
                                 if (response.success) {
-                                    snackbarHostState.showSnackbar("Connected to server successfully")
+                                    isLoading = false
+                                    launch {
+                                        snackbarHostState.showSnackbar("Connected to server successfully")
+                                    }
                                     onServerConnected()
                                 } else {
+                                    isLoading = false
                                     errorMessage = "Server health check failed"
                                     securityManager.clearBaseUrl()
                                 }
                             } catch (e: Exception) {
+                                isLoading = false
                                 errorMessage = "Failed to connect: ${e.message}"
                                 securityManager.clearBaseUrl()
-                            } finally {
-                                isLoading = false
                             }
                         }
                     },
