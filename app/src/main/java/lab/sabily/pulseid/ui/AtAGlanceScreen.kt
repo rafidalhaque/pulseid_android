@@ -58,6 +58,7 @@ fun AtAGlanceScreen(authApi: AuthApi, onBack: () -> Unit) {
     
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val officeTz = LocalOfficeTz.current
 
     // Initialize dates when month changes
     LaunchedEffect(selectedMonth) {
@@ -99,6 +100,7 @@ fun AtAGlanceScreen(authApi: AuthApi, onBack: () -> Unit) {
                                 authApi,
                                 startDate!!,
                                 endDate!!,
+                                officeTz,
                                 onLoading = { isGenerating = it },
                                 onDataGenerated = { reportData = it },
                                 onError = { error = it }
@@ -474,8 +476,8 @@ suspend fun generateAtAGlance(
                     var isEarlyExit = false
 
                     records.forEach { record ->
-                        val entry = parseIso(record.entryTime, dhakaZone)
-                        val exit = parseIso(record.exitTime, dhakaZone)
+                        val entry = parseIso(record.entryTime, timeZone)
+                        val exit = parseIso(record.exitTime, timeZone)
                         
                         if (entry != null && exit != null) {
                             dayDuration += ((exit.time - entry.time) / (1000 * 60)).toInt()
