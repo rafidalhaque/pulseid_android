@@ -23,7 +23,7 @@ interface AuthApi {
     @POST("/api/login")
     suspend fun login(@Body request: LoginRequest): LoginResponse
 
-    @POST("/api/auth/login")
+    @POST("/api/login")
     suspend fun onboardingLogin(@Body request: OnboardingLoginRequest): LoginResponse
 
     @GET("/api/profile")

@@ -29,41 +29,46 @@ import lab.sabily.pulseid.data.*
 
 @Composable
 fun WelcomeScreen(onGetStarted: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
     ) {
-        Image(
-            painter = painterResource(id = R.mipmap.pulseid_foreground),
-            contentDescription = "PulseID Logo",
-            modifier = Modifier.size(180.dp)
-        )
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        Text(
-            text = "PulseID",
-            style = MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.Bold
-        )
-        
-        Text(
-            text = "Smart access. Effortless attendance.",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        
-        Spacer(modifier = Modifier.height(48.dp))
-        
-        Button(
-            onClick = onGetStarted,
-            modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(16.dp)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Text("Get Started")
+            Image(
+                painter = painterResource(id = R.mipmap.pulseid_foreground),
+                contentDescription = "PulseID Logo",
+                modifier = Modifier.size(180.dp)
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Text(
+                text = "PulseID",
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold
+            )
+            
+            Text(
+                text = "Smart access. Effortless attendance.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            
+            Spacer(modifier = Modifier.height(48.dp))
+            
+            Button(
+                onClick = onGetStarted,
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(16.dp)
+            ) {
+                Text("Get Started")
+            }
         }
     }
 }
@@ -225,107 +230,112 @@ fun OnboardingLoginScreen(
     
     val scope = rememberCoroutineScope()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.Center
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
     ) {
-        Text(
-            text = "Login",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold
-        )
-        
-        Text(
-            text = "Enter your employee ID and password.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        
-        Spacer(modifier = Modifier.height(32.dp))
-        
-        OutlinedTextField(
-            value = employeeId,
-            onValueChange = { employeeId = it },
-            label = { Text("Employee ID") },
-            modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
-        )
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text("Password") },
-            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            trailingIcon = {
-                val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-                IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                    Icon(imageVector = image, contentDescription = null)
-                }
-            },
-            modifier = Modifier.fillMaxWidth(),
-            isError = errorMessage != null,
-            supportingText = {
-                if (errorMessage != null) {
-                    Text(errorMessage!!, color = MaterialTheme.colorScheme.error)
-                }
-            }
-        )
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        Button(
-            onClick = {
-                isLoading = true
-                errorMessage = null
-                scope.launch {
-                    try {
-                        val response = networkModule.api.onboardingLogin(OnboardingLoginRequest(employeeId, password))
-                        if (response.success) {
-                            securityManager.saveJwtToken(response.token)
-                            
-                            // Fetch profile to get real UUID and admin status
-                            try {
-                                val profileResponse = networkModule.api.getProfile()
-                                if (profileResponse.success) {
-                                    securityManager.saveEmployeeUuid(profileResponse.employee.id)
-                                }
-                            } catch (e: Exception) {
-                                // Fallback to employeeId if profile fetch fails
-                                securityManager.saveEmployeeUuid(employeeId)
-                            }
-                            
-                            // Fire and forget timezone sync
-                            launch {
-                                try {
-                                    val tzResponse = networkModule.api.getTz()
-                                    if (tzResponse.success) {
-                                        settingsManager.saveOfficeTz(tzResponse.tz)
-                                    }
-                                } catch (e: Exception) {}
-                            }
-                            
-                            onLoginSuccess()
-                        } else {
-                            errorMessage = "Invalid credentials"
-                        }
-                    } catch (e: Exception) {
-                        errorMessage = "Login failed: ${e.message}"
-                    } finally {
-                        isLoading = false
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = "Login",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
+            )
+            
+            Text(
+                text = "Enter your employee ID and password.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            
+            Spacer(modifier = Modifier.height(32.dp))
+            
+            OutlinedTextField(
+                value = employeeId,
+                onValueChange = { employeeId = it },
+                label = { Text("Employee ID") },
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                label = { Text("Password") },
+                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                trailingIcon = {
+                    val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Icon(imageVector = image, contentDescription = null)
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                isError = errorMessage != null,
+                supportingText = {
+                    if (errorMessage != null) {
+                        Text(errorMessage!!, color = MaterialTheme.colorScheme.error)
                     }
                 }
-            },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = !isLoading && employeeId.isNotBlank() && password.isNotBlank()
-        ) {
-            if (isLoading) {
-                CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
-            } else {
-                Text("Login")
+            )
+            
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            Button(
+                onClick = {
+                    isLoading = true
+                    errorMessage = null
+                    scope.launch {
+                        try {
+                            val response = networkModule.api.onboardingLogin(OnboardingLoginRequest(employeeId, password))
+                            if (response.success) {
+                                securityManager.saveJwtToken(response.token)
+                                
+                                // Fetch profile to get real UUID and admin status
+                                try {
+                                    val profileResponse = networkModule.api.getProfile()
+                                    if (profileResponse.success) {
+                                        securityManager.saveEmployeeUuid(profileResponse.employee.id)
+                                    }
+                                } catch (e: Exception) {
+                                    // Fallback to employeeId if profile fetch fails
+                                    securityManager.saveEmployeeUuid(employeeId)
+                                }
+                                
+                                // Fire and forget timezone sync
+                                launch {
+                                    try {
+                                        val tzResponse = networkModule.api.getTz()
+                                        if (tzResponse.success) {
+                                            settingsManager.saveOfficeTz(tzResponse.tz)
+                                        }
+                                    } catch (e: Exception) {}
+                                }
+                                
+                                onLoginSuccess()
+                            } else {
+                                errorMessage = "Invalid credentials"
+                            }
+                        } catch (e: Exception) {
+                            errorMessage = "Login failed: ${e.message}"
+                        } finally {
+                            isLoading = false
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isLoading && employeeId.isNotBlank() && password.isNotBlank()
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
+                } else {
+                    Text("Login")
+                }
             }
         }
     }
