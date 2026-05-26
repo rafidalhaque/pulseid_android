@@ -226,7 +226,9 @@ fun OnboardingLoginScreen(
     onLoginSuccess: () -> Unit,
     onBack: (() -> Unit)? = null
 ) {
-    var employeeId by remember { mutableStateOf(securityManager.getEmployeeUuid() ?: "") }
+    val initialUuid = remember { securityManager.getEmployeeUuid() }
+    val isUuidPreFilled = initialUuid != null
+    var employeeId by remember { mutableStateOf(initialUuid ?: "") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
@@ -313,13 +315,17 @@ fun OnboardingLoginScreen(
                     
                     OutlinedTextField(
                         value = employeeId,
-                        onValueChange = { employeeId = it },
+                        onValueChange = { if (!isUuidPreFilled) employeeId = it },
                         label = { Text("Employee ID") },
                         modifier = Modifier.fillMaxWidth(),
+                        readOnly = isUuidPreFilled,
+                        enabled = !isUuidPreFilled,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                         trailingIcon = {
-                            IconButton(onClick = { cameraPermissionLauncher.launch(Manifest.permission.CAMERA) }) {
-                                Icon(Icons.Default.QrCodeScanner, contentDescription = "Scan QR Code")
+                            if (!isUuidPreFilled) {
+                                IconButton(onClick = { cameraPermissionLauncher.launch(Manifest.permission.CAMERA) }) {
+                                    Icon(Icons.Default.QrCodeScanner, contentDescription = "Scan QR Code")
+                                }
                             }
                         }
                     )
@@ -397,6 +403,22 @@ fun OnboardingLoginScreen(
                             CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
                         } else {
                             Text("Login")
+                        }
+                    }
+
+                    if (isUuidPreFilled) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        TextButton(
+                            onClick = {
+                                securityManager.clearAllData()
+                                employeeId = ""
+                                password = ""
+                                errorMessage = null
+                                onBack?.invoke()
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Clear Data", color = MaterialTheme.colorScheme.error)
                         }
                     }
                 }

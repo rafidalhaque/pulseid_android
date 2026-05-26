@@ -1,3 +1,9 @@
+##version_1.20.8
+- feat: prevent editing pre-filled Employee ID in login
+- feat: add "Clear Data" button to login screen for account reset
+- refactor: remove redundant LoginScreen implementation
+- bump version to 1.20.8 (104)
+
 ##version_1.20.7
 - feat: add QR code scanning to Employee ID fields in login and onboarding
 - feat: add QR code generation and display in Admin Panel (Member Details)

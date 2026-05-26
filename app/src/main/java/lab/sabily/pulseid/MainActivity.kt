@@ -53,8 +53,6 @@ import lab.sabily.pulseid.ui.*
 import lab.sabily.pulseid.ui.AdminScreen
 import lab.sabily.pulseid.ui.AttendanceHistoryScreen
 import lab.sabily.pulseid.ui.LeaveScreen
-import lab.sabily.pulseid.ui.LoginScreen
-import lab.sabily.pulseid.ui.ProfileScreen
 import lab.sabily.pulseid.ui.LocalOfficeTz
 import lab.sabily.pulseid.ui.theme.PulseIDTheme
 import lab.sabily.pulseid.ui.onboarding.WelcomeScreen
