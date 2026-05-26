@@ -1,3 +1,10 @@
+##version_1.20.4
+- feat: unify token storage and simplify identifier handling
+- remove redundant KEY_TOKEN and consolidate to KEY_JWT_TOKEN
+- simplify login and onboarding by saving user-typed UUIDs directly
+- implement login screen pre-fill using canonical employee UUID
+- bump version to 1.20.4 (100)
+
 ##version_1.20.2
 - perf: optimize onboarding navigation responsiveness by parallelizing snackbar
 - bump version to 1.20.2 (98)
