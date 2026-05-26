@@ -223,9 +223,10 @@ fun OnboardingLoginScreen(
     securityManager: SecurityManager,
     settingsManager: SettingsManager,
     networkModule: NetworkModule,
-    onLoginSuccess: () -> Unit
+    onLoginSuccess: () -> Unit,
+    onBack: (() -> Unit)? = null
 ) {
-    var employeeId by remember { mutableStateOf("") }
+    var employeeId by remember { mutableStateOf(securityManager.getEmployeeUuid() ?: "") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
@@ -243,6 +244,16 @@ fun OnboardingLoginScreen(
                 .padding(24.dp),
             verticalArrangement = Arrangement.Center
         ) {
+            if (onBack != null) {
+                IconButton(
+                    onClick = onBack,
+                    modifier = Modifier.align(Alignment.Start)
+                ) {
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
             Text(
                 text = "Login",
                 style = MaterialTheme.typography.headlineMedium,

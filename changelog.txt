@@ -1,3 +1,9 @@
+##version_1.20.6
+- fix: redirect to login instead of welcome on session expiration
+- feat: pre-fill employee ID in onboarding login screen
+- feat: add back navigation from onboarding login screen
+- bump version to 1.20.6 (102)
+
 ##version_1.20.5
 - fix: align login request field name with backend ('uuid')
 - feat: restore canonical UUID retrieval from profile after login

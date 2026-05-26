@@ -97,6 +97,8 @@ class MainActivity : FragmentActivity() {
                     val startDestination = remember {
                         if (securityManager.getToken() != null && securityManager.getBaseUrl() != null) {
                             "main"
+                        } else if (securityManager.getBaseUrl() != null) {
+                            "onboarding/login"
                         } else {
                             "onboarding/welcome"
                         }
@@ -122,7 +124,8 @@ class MainActivity : FragmentActivity() {
                                     navController.navigate("main") {
                                         popUpTo(0) { inclusive = true }
                                     }
-                                }
+                                },
+                                onBack = { navController.popBackStack() }
                             )
                         }
                         composable("main") {
@@ -134,7 +137,8 @@ class MainActivity : FragmentActivity() {
                                 appLockViewModel = appLockViewModel,
                                 appUpdateViewModel = appUpdateViewModel,
                                 onLogout = {
-                                    navController.navigate("onboarding/welcome") {
+                                    val destination = if (securityManager.getBaseUrl() != null) "onboarding/login" else "onboarding/welcome"
+                                    navController.navigate(destination) {
                                         popUpTo(0) { inclusive = true }
                                     }
                                 }
