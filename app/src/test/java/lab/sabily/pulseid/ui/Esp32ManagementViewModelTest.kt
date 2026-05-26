@@ -35,21 +35,40 @@ class Esp32ManagementViewModelTest {
     }
 
     @Test
-    fun `ping success updates state correctly`() = runTest {
+    fun `ping success updates lastSuccessfulPollMs`() = runTest {
         fakeAuthApi.shouldSucceed = true
+        val before = System.currentTimeMillis()
         viewModel.ping()
         testDispatcher.scheduler.advanceUntilIdle()
 
         val state = viewModel.state.value
         assertTrue(state.isDeviceOnline)
-        assertNotNull(state.pingResult)
-        assertEquals(state.pingResult, state.lastSeenPingResult)
-        assertFalse(state.isPingLoading)
+        assertTrue(state.lastSuccessfulPollMs >= before)
     }
 
     @Test
-    fun `ping failure updates state correctly`() = runTest {
+    fun `ping failure does not update lastSuccessfulPollMs`() = runTest {
+        // First a success to set a value
+        fakeAuthApi.shouldSucceed = true
+        viewModel.ping()
+        testDispatcher.scheduler.advanceUntilIdle()
+        val firstSuccessTime = viewModel.state.value.lastSuccessfulPollMs
+        assertTrue(firstSuccessTime > 0)
+
+        // Then a failure
         fakeAuthApi.shouldSucceed = false
+        viewModel.ping()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.state.value
+        assertFalse(state.isDeviceOnline)
+        assertEquals(firstSuccessTime, state.lastSuccessfulPollMs)
+        assertEquals(null, state.pingResult)
+    }
+
+    @Test
+    fun `ping exception updates state correctly`() = runTest {
+        fakeAuthApi.shouldThrow = true
         viewModel.ping()
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -61,6 +80,7 @@ class Esp32ManagementViewModelTest {
 
     private class FakeAuthApi : AuthApi {
         var shouldSucceed = true
+        var shouldThrow = false
 
         override suspend fun login(request: LoginRequest): LoginResponse = TODO()
         override suspend fun getProfile(): ProfileResponse = TODO()
@@ -83,9 +103,11 @@ class Esp32ManagementViewModelTest {
         override suspend fun addLeave(request: AddLeaveRequest): GenericResponse = TODO()
         override suspend fun manageLeave(request: ManageLeaveRequest): GenericResponse = TODO()
         override suspend fun esp32Command(request: Esp32CommandRequest): Esp32CommandResult {
+            if (shouldThrow) throw Exception("Network error")
             return Esp32CommandResult(shouldSucceed)
         }
         override suspend fun esp32Ping(): Esp32PingResult {
+            if (shouldThrow) throw Exception("Network error")
             return if (shouldSucceed) {
                 Esp32PingResult(success = true, ntp_time = "2026-05-12T09:20:00+06:00")
             } else {

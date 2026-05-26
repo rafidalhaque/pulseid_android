@@ -18,7 +18,8 @@ data class Esp32ManagementState(
     val isPingLoading: Boolean = false,
     val isRebootLoading: Boolean = false,
     val lastSeenPingResult: Esp32PingResult? = null,
-    val isDeviceOnline: Boolean = true,
+    val isDeviceOnline: Boolean = false,
+    val lastSuccessfulPollMs: Long = 0L,
     val snackbarMessage: String? = null
 )
 
@@ -32,7 +33,15 @@ class Esp32ManagementViewModel(private val authApi: AuthApi) : ViewModel() {
         if (pollingJob != null) return
         pollingJob = viewModelScope.launch {
             while (true) {
-                ping()
+                pingInternal()
+                
+                // Safeguard: if 2 consecutive polls failed (20s), force offline
+                val currentTime = System.currentTimeMillis()
+                val lastSuccess = _state.value.lastSuccessfulPollMs
+                if (lastSuccess > 0 && (currentTime - lastSuccess) > 20000) {
+                    _state.update { it.copy(isDeviceOnline = false) }
+                }
+                
                 delay(10000) // Poll every 10 seconds
             }
         }
@@ -45,24 +54,29 @@ class Esp32ManagementViewModel(private val authApi: AuthApi) : ViewModel() {
 
     fun ping() {
         viewModelScope.launch {
-            _state.update { it.copy(isPingLoading = true) }
-            try {
-                val result = authApi.esp32Ping()
-                if (result.success) {
-                    _state.update {
-                        it.copy(
-                            pingResult = result,
-                            lastSeenPingResult = result,
-                            isDeviceOnline = true,
-                            isPingLoading = false
-                        )
-                    }
-                } else {
-                    handlePingFailure()
+            pingInternal()
+        }
+    }
+
+    private suspend fun pingInternal() {
+        _state.update { it.copy(isPingLoading = true) }
+        try {
+            val result = authApi.esp32Ping()
+            if (result.success) {
+                _state.update {
+                    it.copy(
+                        pingResult = result,
+                        lastSeenPingResult = result,
+                        isDeviceOnline = true,
+                        lastSuccessfulPollMs = System.currentTimeMillis(),
+                        isPingLoading = false
+                    )
                 }
-            } catch (e: Exception) {
+            } else {
                 handlePingFailure()
             }
+        } catch (e: Exception) {
+            handlePingFailure()
         }
     }
 

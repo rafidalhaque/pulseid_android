@@ -152,8 +152,13 @@ fun Esp32ManagementScreen(
                             StatusField("WiFi RSSI", "$rssi dBm ($rssiLabel)")
                             
                             Spacer(modifier = Modifier.height(8.dp))
+                            val lastUpdated = remember(state.lastSuccessfulPollMs) {
+                                if (state.lastSuccessfulPollMs > 0) {
+                                    SimpleDateFormat("hh:mm:ss a", Locale.getDefault()).apply { timeZone = dhakaZone }.format(Date(state.lastSuccessfulPollMs))
+                                } else "N/A"
+                            }
                             Text(
-                                "Last updated: Just now (auto-polls every 30s)",
+                                "Last updated: $lastUpdated (auto-polls every 10s)",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
