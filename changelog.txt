@@ -1,6 +1,62 @@
 ##version_1.20.1
 - feat: match onboarding background with theme and update login API path
-- bump version to 1.20.1
+- bump version to 1.20.1 (97)
+
+##version_1.20.0
+- feat: implement 3-screen onboarding flow with QR scanner
+- bump version to 1.20.0 (96)
+
+##version_1.19.0
+- feat: implement timezone sync with DataStore and server integration
+- bump version to 1.19.0 (95)
+
+##version_1.18.15
+- feat: centralize base URL and make it read-only in NVS generator
+- bump version to 1.18.15 (94)
+
+##version_1.18.14
+- fix: ESP32 Management polling bugs and add safeguard
+- bump version to 1.18.14 (93)
+
+##version_1.18.13
+- feat: implement NVS Generator and fix update check platform param
+- bump version to 1.18.13 (92)
+
+##version_1.18.12
+- feat: update upload to backend step to match backend logic
+- bump version to 1.18.12 (91)
+
+##version_1.18.11
+- fix: aggressively reset EncryptedSharedPreferences and Tink keyset on corruption
+- bump version to 1.18.11 (90)
+
+##version_1.18.10
+- fix: handle EncryptedSharedPreferences corruption/crash
+- bump version to 1.18.10 (89)
+
+##version_1.18.9
+- feat: fix LoginScreen crash, update background color to #fdfdfd
+- bump version to 1.18.9 (88)
+
+##version_1.18.8
+- feat: update logo background to #fdfdfd and use logo in LoginScreen
+- bump version to 1.18.8 (87)
+
+##version_1.18.7
+- feat: add dynamic colors for status and start/stop button
+- bump version to 1.18.7 (86)
+
+##version_1.18.6
+- feat: implement attendance polling after BLE advertising
+- bump version to 1.18.6 (85)
+
+##version_1.18.5
+- feat: implement ESP32 status polling with offline states
+- bump version to 1.18.5 (84)
+
+##version_1.18.4
+- feat: add backend APK upload step to release workflow
+- bump version to 1.18.4 (83)
 
 ##version_1.18.3
 - fix: add missing scroll imports in ProfileScreen and bump version to 1.18.3
