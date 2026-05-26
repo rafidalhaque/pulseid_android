@@ -17,11 +17,13 @@ import lab.sabily.pulseid.R
 import lab.sabily.pulseid.data.LoginRequest
 import lab.sabily.pulseid.data.NetworkModule
 import lab.sabily.pulseid.data.SecurityManager
+import lab.sabily.pulseid.data.SettingsManager
 import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
     securityManager: SecurityManager,
+    settingsManager: SettingsManager,
     networkModule: NetworkModule,
     onLoginSuccess: () -> Unit
 ) {
@@ -88,6 +90,19 @@ fun LoginScreen(
                         if (response.success) {
                             securityManager.saveToken(response.token)
                             securityManager.saveEmployeeUuid(uuid)
+                            
+                            // Fire and forget timezone sync
+                            launch {
+                                try {
+                                    val tzResponse = networkModule.api.getTz()
+                                    if (tzResponse.success) {
+                                        settingsManager.saveOfficeTz(tzResponse.tz)
+                                    }
+                                } catch (e: Exception) {
+                                    // Silent failure as per requirements
+                                }
+                            }
+                            
                             onLoginSuccess()
                         } else {
                             errorMessage = "Login failed"

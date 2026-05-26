@@ -262,6 +262,12 @@ data class NvsGeneratorRequest(
 )
 
 @Serializable
+data class TimezoneResponse(
+    val success: Boolean,
+    val tz: String
+)
+
+@Serializable
 data class VersionInfo(
     @SerialName("version_code") val versionCode: Int,
     @SerialName("version_name") val versionName: String,

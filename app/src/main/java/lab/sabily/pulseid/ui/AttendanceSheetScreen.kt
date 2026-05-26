@@ -55,6 +55,7 @@ fun AttendanceSheetScreen(authApi: AuthApi, onBack: () -> Unit) {
     
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val officeTz = LocalOfficeTz.current
 
     LaunchedEffect(Unit) {
         isLoading = true
@@ -107,6 +108,7 @@ fun AttendanceSheetScreen(authApi: AuthApi, onBack: () -> Unit) {
                                 authApi,
                                 selectedEmployee!!,
                                 selectedMonth,
+                                officeTz,
                                 onLoading = { isGenerating = it },
                                 onDataGenerated = { attendanceSheetData = it },
                                 onError = { error = it }
@@ -121,12 +123,12 @@ fun AttendanceSheetScreen(authApi: AuthApi, onBack: () -> Unit) {
                     onBackToSelection = { attendanceSheetData = null },
                     onExportPdf = {
                         scope.launch {
-                            exportToPdf(context, attendanceSheetData!!)
+                            exportToPdf(context, attendanceSheetData!!, officeTz)
                         }
                     },
                     onExportCsv = {
                         scope.launch {
-                            exportToCsv(context, attendanceSheetData!!)
+                            exportToCsv(context, attendanceSheetData!!, officeTz)
                         }
                     }
                 )
@@ -438,9 +440,10 @@ fun TimeCard(data: AttendanceSheetData) {
 
 @Composable
 fun DailyRecordRow(record: AttendanceRecord) {
-    val dhakaZone = TimeZone.getTimeZone("Asia/Dhaka")
-    val timeFormat = SimpleDateFormat("hh:mm a", Locale.getDefault()).apply { timeZone = dhakaZone }
-    val dateFormat = SimpleDateFormat("dd MMM", Locale.getDefault()).apply { timeZone = dhakaZone }
+    val officeTz = LocalOfficeTz.current
+    val timeZone = remember(officeTz) { TimeZone.getTimeZone(officeTz) }
+    val timeFormat = remember(timeZone) { SimpleDateFormat("hh:mm a", Locale.getDefault()).apply { this.timeZone = timeZone } }
+    val dateFormat = remember(timeZone) { SimpleDateFormat("dd MMM", Locale.getDefault()).apply { this.timeZone = timeZone } }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -452,11 +455,11 @@ fun DailyRecordRow(record: AttendanceRecord) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                val date = DateUtils.parseFlexibleDate(record.date)
+                val date = DateUtils.parseFlexibleDate(record.date, officeTz)
                 Text(text = date?.let { dateFormat.format(it) } ?: record.date, fontWeight = FontWeight.Bold)
                 
-                val entry = DateUtils.parseFlexibleTime(record.entryTime)
-                val exit = DateUtils.parseFlexibleTime(record.exitTime)
+                val entry = DateUtils.parseFlexibleTime(record.entryTime, officeTz)
+                val exit = DateUtils.parseFlexibleTime(record.exitTime, officeTz)
                 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("In: ${entry?.let { timeFormat.format(it) } ?: "--:--"}", fontSize = 12.sp)
@@ -500,6 +503,7 @@ suspend fun generateSheet(
     authApi: AuthApi,
     employee: Employee,
     calendar: Calendar,
+    officeTz: String,
     onLoading: (Boolean) -> Unit,
     onDataGenerated: (AttendanceSheetData) -> Unit,
     onError: (String) -> Unit
@@ -518,14 +522,14 @@ suspend fun generateSheet(
             val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
             
             val filteredHistory = historyResponse.records.filter { record ->
-                val date = DateUtils.parseFlexibleDate(record.date)
+                val date = DateUtils.parseFlexibleDate(record.date, officeTz)
                 if (date == null) return@filter false
                 val cal = Calendar.getInstance().apply { time = date }
                 record.employeeId == employee.id && cal.get(Calendar.MONTH) == month && cal.get(Calendar.YEAR) == year
             }
 
             val filteredLeaves = leaveResponse.body.filter { leave ->
-                val date = DateUtils.parseFlexibleDate(leave.date)
+                val date = DateUtils.parseFlexibleDate(leave.date, officeTz)
                 if (date == null) return@filter false
                 val cal = Calendar.getInstance().apply { time = date }
                 leave.employeeId == employee.id && 
@@ -535,7 +539,7 @@ suspend fun generateSheet(
             }
 
             val filteredHolidays = holidayResponse.holidays.filter { holiday ->
-                val date = DateUtils.parseFlexibleDate(holiday.date)
+                val date = DateUtils.parseFlexibleDate(holiday.date, officeTz)
                 if (date == null) return@filter false
                 val cal = Calendar.getInstance().apply { time = date }
                 cal.get(Calendar.MONTH) == month && cal.get(Calendar.YEAR) == year
@@ -550,18 +554,18 @@ suspend fun generateSheet(
                 val dayOfWeek = cal.get(Calendar.DAY_OF_WEEK)
                 val isWeekend = dayOfWeek == Calendar.FRIDAY
                 val isHoliday = filteredHolidays.any { h ->
-                    val hDate = DateUtils.parseFlexibleDate(h.date)
+                    val hDate = DateUtils.parseFlexibleDate(h.date, officeTz)
                     hDate != null && sdf.format(hDate) == dayStr
                 }
                 if (!isWeekend && !isHoliday) officeDaysSet.add(dayStr)
             }
 
             val presentDaysSet = filteredHistory.mapNotNull { record ->
-                DateUtils.parseFlexibleDate(record.date)?.let { sdf.format(it) }
+                DateUtils.parseFlexibleDate(record.date, officeTz)?.let { sdf.format(it) }
             }.toSet()
 
             val leaveDaysSet = filteredLeaves.mapNotNull { leave ->
-                DateUtils.parseFlexibleDate(leave.date)?.let { sdf.format(it) }
+                DateUtils.parseFlexibleDate(leave.date, officeTz)?.let { sdf.format(it) }
             }.toSet()
 
             val presentCount = presentDaysSet.size
@@ -570,7 +574,7 @@ suspend fun generateSheet(
             
             // Group history by date string for per-day metrics
             val historyByDate = filteredHistory.groupBy { record ->
-                DateUtils.parseFlexibleDate(record.date)?.let { sdf.format(it) }
+                DateUtils.parseFlexibleDate(record.date, officeTz)?.let { sdf.format(it) }
             }
 
             val lateCount = historyByDate.values.count { records -> records.any { it.lateEntry != null } }
@@ -583,8 +587,8 @@ suspend fun generateSheet(
 
             // Policy
             val policy = policyResponse.policy.find { p ->
-                val start = DateUtils.parseFlexibleDate(p.startDate)
-                val end = DateUtils.parseFlexibleDate(p.endDate)
+                val start = DateUtils.parseFlexibleDate(p.startDate, officeTz)
+                val end = DateUtils.parseFlexibleDate(p.endDate, officeTz)
                 if (start == null || end == null) return@find false
                 val current = calendar.time
                 !current.before(start) && !current.after(end)
@@ -592,8 +596,8 @@ suspend fun generateSheet(
 
             var totalTimeMinutes = 0
             filteredHistory.forEach { record ->
-                val entry = DateUtils.parseFlexibleTime(record.entryTime)
-                val exit = DateUtils.parseFlexibleTime(record.exitTime)
+                val entry = DateUtils.parseFlexibleTime(record.entryTime, officeTz)
+                val exit = DateUtils.parseFlexibleTime(record.exitTime, officeTz)
                 if (entry != null && exit != null) {
                     totalTimeMinutes += ((exit.time - entry.time) / (1000 * 60)).toInt()
                 }
@@ -654,7 +658,7 @@ data class AttendanceSheetData(
     val dailyRecords: List<AttendanceRecord>
 )
 
-suspend fun exportToPdf(context: Context, data: AttendanceSheetData) {
+suspend fun exportToPdf(context: Context, data: AttendanceSheetData, officeTz: String) {
     withContext(Dispatchers.Main) {
         Toast.makeText(context, "Generating PDF...", Toast.LENGTH_SHORT).show()
     }
@@ -704,8 +708,8 @@ suspend fun exportToPdf(context: Context, data: AttendanceSheetData) {
             headers.forEach { table.addCell(Paragraph(it, headerFont)) }
 
             data.dailyRecords.forEach { record ->
-                val entry = DateUtils.parseFlexibleTime(record.entryTime)
-                val exit = DateUtils.parseFlexibleTime(record.exitTime)
+                val entry = DateUtils.parseFlexibleTime(record.entryTime, officeTz)
+                val exit = DateUtils.parseFlexibleTime(record.exitTime, officeTz)
                 val durationStr = if (entry != null && exit != null) {
                     val diff = (exit.time - entry.time) / (1000 * 60)
                     formatDuration(diff.toInt())
@@ -736,7 +740,7 @@ suspend fun exportToPdf(context: Context, data: AttendanceSheetData) {
     }
 }
 
-suspend fun exportToCsv(context: Context, data: AttendanceSheetData) {
+suspend fun exportToCsv(context: Context, data: AttendanceSheetData, officeTz: String) {
     withContext(Dispatchers.Main) {
         Toast.makeText(context, "Generating CSV...", Toast.LENGTH_SHORT).show()
     }
@@ -770,8 +774,8 @@ suspend fun exportToCsv(context: Context, data: AttendanceSheetData) {
             writer.write("Daily Records\n")
             writer.write("Date,Entry,Exit,Duration,Late(min),Early(min),OT(min)\n")
             data.dailyRecords.forEach { record ->
-                val entry = DateUtils.parseFlexibleTime(record.entryTime)
-                val exit = DateUtils.parseFlexibleTime(record.exitTime)
+                val entry = DateUtils.parseFlexibleTime(record.entryTime, officeTz)
+                val exit = DateUtils.parseFlexibleTime(record.exitTime, officeTz)
                 val durationStr = if (entry != null && exit != null) {
                     val diff = (exit.time - entry.time) / (1000 * 60)
                     formatDuration(diff.toInt())

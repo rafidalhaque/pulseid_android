@@ -369,13 +369,14 @@ suspend fun generateAtAGlance(
     authApi: AuthApi,
     startDate: Calendar,
     endDate: Calendar,
+    officeTz: String,
     onLoading: (Boolean) -> Unit,
     onDataGenerated: (List<AtAGlanceData>) -> Unit,
     onError: (String) -> Unit
 ) {
     onLoading(true)
     try {
-        val dhakaZone = TimeZone.getTimeZone("Asia/Dhaka")
+        val timeZone = TimeZone.getTimeZone(officeTz)
 
         val historyDeferred = withContext(Dispatchers.IO) { async { authApi.getAttendanceHistory(all = true) } }
         val holidayDeferred = withContext(Dispatchers.IO) { async { authApi.getHolidays() } }
@@ -396,7 +397,7 @@ suspend fun generateAtAGlance(
 
             // Filter holidays in range
             val filteredHolidays = holidays.holidays.filter {
-                val d = DateUtils.parseFlexibleDate(it.date)?.time ?: 0L
+                val d = DateUtils.parseFlexibleDate(it.date, officeTz)?.time ?: 0L
                 d in startMillis..endMillis
             }
 
@@ -407,7 +408,7 @@ suspend fun generateAtAGlance(
                 val dayStr = sdf.format(cal.time)
                 val isWeekend = cal.get(Calendar.DAY_OF_WEEK) == Calendar.FRIDAY
                 val isHoliday = filteredHolidays.any { h ->
-                    val hDate = DateUtils.parseFlexibleDate(h.date)
+                    val hDate = DateUtils.parseFlexibleDate(h.date, officeTz)
                     hDate != null && sdf.format(hDate) == dayStr
                 }
                 if (!isWeekend && !isHoliday) officeDaysSet.add(dayStr)
@@ -418,18 +419,18 @@ suspend fun generateAtAGlance(
                 .filter { it.position != "0" }
                 .map { emp ->
                 val empHistory = history.records.filter {
-                    val d = DateUtils.parseFlexibleDate(it.date)?.time ?: 0L
+                    val d = DateUtils.parseFlexibleDate(it.date, officeTz)?.time ?: 0L
                     it.employeeId == emp.id && d in startMillis..endMillis
                 }
                 val empLeaves = leaves.body.filter {
-                    val d = DateUtils.parseFlexibleDate(it.date)?.time ?: 0L
+                    val d = DateUtils.parseFlexibleDate(it.date, officeTz)?.time ?: 0L
                     it.employeeId == emp.id && d in startMillis..endMillis && it.isApproved == "Approved"
                 }
 
                 // Match policy for the range (using first day of range as reference)
                 val policy = policies.policy.find { p ->
-                    val pStart = DateUtils.parseFlexibleDate(p.startDate)?.time ?: 0L
-                    val pEnd = DateUtils.parseFlexibleDate(p.endDate)?.time ?: 0L
+                    val pStart = DateUtils.parseFlexibleDate(p.startDate, officeTz)?.time ?: 0L
+                    val pEnd = DateUtils.parseFlexibleDate(p.endDate, officeTz)?.time ?: 0L
                     startMillis in pStart..pEnd
                 } ?: policies.policy.lastOrNull()
 
@@ -442,15 +443,15 @@ suspend fun generateAtAGlance(
                 } else 0
 
                 val presentDaysSet = empHistory.mapNotNull { record ->
-                    DateUtils.parseFlexibleDate(record.date)?.let { sdf.format(it) }
+                    DateUtils.parseFlexibleDate(record.date, officeTz)?.let { sdf.format(it) }
                 }.toSet()
 
                 val leaveDaysSet = empLeaves.mapNotNull { leave ->
-                    DateUtils.parseFlexibleDate(leave.date)?.let { sdf.format(it) }
+                    DateUtils.parseFlexibleDate(leave.date, officeTz)?.let { sdf.format(it) }
                 }.toSet()
 
                 val historyByDate = empHistory.groupBy { record ->
-                    DateUtils.parseFlexibleDate(record.date)?.let { sdf.format(it) }
+                    DateUtils.parseFlexibleDate(record.date, officeTz)?.let { sdf.format(it) }
                 }
 
                 var totalTimeMin = 0

@@ -29,7 +29,8 @@ fun EditEmployeeScreen(
     var email by remember { mutableStateOf(employee.email) }
     var idNumber by remember { mutableStateOf(employee.idNumber) }
     
-    val dateFormatter = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).apply { timeZone = TimeZone.getTimeZone("Asia/Dhaka") } }
+    val officeTz = LocalOfficeTz.current
+    val dateFormatter = remember(officeTz) { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).apply { timeZone = TimeZone.getTimeZone(officeTz) } }
     val initialDate = try {
         employee.joinDate?.let { dateFormatter.parse(it)?.time } ?: System.currentTimeMillis()
     } catch (e: Exception) {

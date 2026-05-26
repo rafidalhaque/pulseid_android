@@ -29,9 +29,10 @@ fun Esp32ManagementScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var showRebootDialog by remember { mutableStateOf(false) }
 
-    val dhakaZone = remember { TimeZone.getTimeZone("Asia/Dhaka") }
-    val displayFormat = remember { 
-        SimpleDateFormat("dd MMMM yyyy, hh:mm a", Locale.getDefault()).apply { timeZone = dhakaZone } 
+    val officeTz = LocalOfficeTz.current
+    val timeZone = remember(officeTz) { TimeZone.getTimeZone(officeTz) }
+    val displayFormat = remember(timeZone) { 
+        SimpleDateFormat("dd MMMM yyyy, hh:mm a", Locale.getDefault()).apply { this.timeZone = timeZone } 
     }
 
     LaunchedEffect(Unit) {
@@ -125,7 +126,7 @@ fun Esp32ManagementScreen(
                             )
                             
                             val lastSeen = state.lastSeenPingResult?.ntp_time?.let { ntpTime ->
-                                DateUtils.parseFlexibleDate(ntpTime)?.let { date ->
+                                DateUtils.parseFlexibleDate(ntpTime, officeTz)?.let { date ->
                                     displayFormat.format(date)
                                 }
                             }
@@ -152,9 +153,9 @@ fun Esp32ManagementScreen(
                             StatusField("WiFi RSSI", "$rssi dBm ($rssiLabel)")
                             
                             Spacer(modifier = Modifier.height(8.dp))
-                            val lastUpdated = remember(state.lastSuccessfulPollMs) {
+                            val lastUpdated = remember(state.lastSuccessfulPollMs, timeZone) {
                                 if (state.lastSuccessfulPollMs > 0) {
-                                    SimpleDateFormat("hh:mm:ss a", Locale.getDefault()).apply { timeZone = dhakaZone }.format(Date(state.lastSuccessfulPollMs))
+                                    SimpleDateFormat("hh:mm:ss a", Locale.getDefault()).apply { this.timeZone = timeZone }.format(Date(state.lastSuccessfulPollMs))
                                 } else "N/A"
                             }
                             Text(

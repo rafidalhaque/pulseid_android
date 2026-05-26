@@ -4,7 +4,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 object DateUtils {
-    fun parseFlexibleDate(dateStr: String?): Date? {
+    fun parseFlexibleDate(dateStr: String?, tz: String = "Asia/Dhaka"): Date? {
         if (dateStr == null) return null
         val formats = listOf(
             "yyyy-MM-dd",
@@ -17,10 +17,10 @@ object DateUtils {
             "yyyy-MM-dd'T'HH:mm:ss.SSSSSS",
             "yyyy-MM-dd'T'HH:mm:ss.SSS"
         )
-        val dhakaZone = TimeZone.getTimeZone("Asia/Dhaka")
+        val timeZone = TimeZone.getTimeZone(tz)
         for (format in formats) {
             try {
-                val sdf = SimpleDateFormat(format, Locale.getDefault()).apply { timeZone = dhakaZone }
+                val sdf = SimpleDateFormat(format, Locale.getDefault()).apply { this.timeZone = timeZone }
                 val date = sdf.parse(dateStr)
                 if (date != null) return date
             } catch (e: Exception) {
@@ -30,7 +30,7 @@ object DateUtils {
         return null
     }
 
-    fun parseFlexibleTime(timeStr: String?): Date? {
+    fun parseFlexibleTime(timeStr: String?, tz: String = "Asia/Dhaka"): Date? {
         if (timeStr == null) return null
         val formats = listOf(
             "yyyy-MM-dd'T'HH:mm:ss",
@@ -43,10 +43,10 @@ object DateUtils {
             "HH:mm:ss",
             "HH:mm"
         )
-        val dhakaZone = TimeZone.getTimeZone("Asia/Dhaka")
+        val timeZone = TimeZone.getTimeZone(tz)
         for (format in formats) {
             try {
-                val sdf = SimpleDateFormat(format, Locale.getDefault()).apply { timeZone = dhakaZone }
+                val sdf = SimpleDateFormat(format, Locale.getDefault()).apply { this.timeZone = timeZone }
                 val date = sdf.parse(timeStr)
                 if (date != null) return date
             } catch (e: Exception) {

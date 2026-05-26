@@ -13,6 +13,7 @@ retrofit = "2.11.0"
 okhttp = "4.12.0"
 serialization = "1.7.3"
 lifecycleViewModel = "2.6.1"
+datastore = "1.1.1"
 openpdf = "2.0.3"
 android-awt = "1.0.2"
 
@@ -20,6 +21,7 @@ android-awt = "1.0.2"
 android-awt = { group = "io.github.nullpops", name = "android-awt", version.ref = "android-awt" }
 openpdf = { group = "com.github.librepdf", name = "openpdf", version.ref = "openpdf" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }

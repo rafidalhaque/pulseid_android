@@ -28,12 +28,13 @@ fun AttendanceLogScreen(authApi: AuthApi) {
     val refreshState = rememberPullToRefreshState()
     var isRefreshing by remember { mutableStateOf(false) }
 
-    val dhakaZone = remember { TimeZone.getTimeZone("Asia/Dhaka") }
-    val isoFormat = remember { 
-        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).apply { timeZone = dhakaZone }
+    val officeTz = LocalOfficeTz.current
+    val timeZone = remember(officeTz) { TimeZone.getTimeZone(officeTz) }
+    val isoFormat = remember(timeZone) { 
+        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).apply { this.timeZone = timeZone }
     }
-    val displayFormat = remember { 
-        SimpleDateFormat("MMM dd, hh:mm a", Locale.getDefault()).apply { timeZone = dhakaZone }
+    val displayFormat = remember(timeZone) { 
+        SimpleDateFormat("MMM dd, hh:mm a", Locale.getDefault()).apply { this.timeZone = timeZone }
     }
 
     val fetchLogs = suspend {

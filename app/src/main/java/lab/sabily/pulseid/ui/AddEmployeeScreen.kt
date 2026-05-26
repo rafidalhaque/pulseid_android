@@ -40,7 +40,8 @@ fun AddEmployeeScreen(
     
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
-    val dateFormatter = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).apply { timeZone = TimeZone.getTimeZone("Asia/Dhaka") } }
+    val officeTz = LocalOfficeTz.current
+    val dateFormatter = remember(officeTz) { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).apply { timeZone = TimeZone.getTimeZone(officeTz) } }
     val clipboardManager = LocalClipboardManager.current
     
     var showDatePicker by remember { mutableStateOf(false) }

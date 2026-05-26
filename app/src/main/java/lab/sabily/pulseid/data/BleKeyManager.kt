@@ -5,10 +5,12 @@ import java.text.SimpleDateFormat
 import java.util.*
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
+import kotlinx.coroutines.flow.first
 
 class BleKeyManager(
     private val api: AuthApi,
-    private val securityManager: SecurityManager
+    private val securityManager: SecurityManager,
+    private val settingsManager: SettingsManager
 ) {
     private var masterSecret: String? = null
 
@@ -33,8 +35,9 @@ class BleKeyManager(
         }
 
         val secret = masterSecret ?: return null
+        val officeTz = settingsManager.officeTz.first()
         val date = SimpleDateFormat("yyyy-MM-dd", Locale.US).apply { 
-            timeZone = TimeZone.getTimeZone("Asia/Dhaka")
+            timeZone = TimeZone.getTimeZone(officeTz)
         }.format(Date())
         val input = employeeUuid + date
         

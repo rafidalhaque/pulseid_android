@@ -45,11 +45,14 @@ import lab.sabily.pulseid.data.BleKeyManager
 import lab.sabily.pulseid.data.DateUtils
 import lab.sabily.pulseid.data.NetworkModule
 import lab.sabily.pulseid.data.SecurityManager
+import lab.sabily.pulseid.data.SettingsManager
+import lab.sabily.pulseid.ui.*
 import lab.sabily.pulseid.ui.AdminScreen
 import lab.sabily.pulseid.ui.AttendanceHistoryScreen
 import lab.sabily.pulseid.ui.LeaveScreen
 import lab.sabily.pulseid.ui.LoginScreen
 import lab.sabily.pulseid.ui.ProfileScreen
+import lab.sabily.pulseid.ui.LocalOfficeTz
 import lab.sabily.pulseid.ui.theme.PulseIDTheme
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.async
@@ -58,9 +61,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.Job
 import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.lifecycle.ViewModelProvider
-import lab.sabily.pulseid.ui.*
 import java.text.SimpleDateFormat
 import java.util.*
+import androidx.compose.runtime.CompositionLocalProvider
 
 class MainActivity : FragmentActivity() {
     private lateinit var appLockViewModel: AppLockViewModel
@@ -71,8 +74,9 @@ class MainActivity : FragmentActivity() {
         enableEdgeToEdge()
         
         val securityManager = SecurityManager(this)
+        val settingsManager = SettingsManager(this)
         val networkModule = NetworkModule(securityManager)
-        val bleKeyManager = BleKeyManager(networkModule.api, securityManager)
+        val bleKeyManager = BleKeyManager(networkModule.api, securityManager, settingsManager)
 
         appLockViewModel = ViewModelProvider(this, AppLockViewModel.Factory(securityManager))[AppLockViewModel::class.java]
         ProcessLifecycleOwner.get().lifecycle.addObserver(appLockViewModel)
@@ -81,7 +85,9 @@ class MainActivity : FragmentActivity() {
 
         setContent {
             PulseIDTheme {
-                val isAuthenticated by securityManager.isAuthenticated.collectAsState()
+                val officeTz by settingsManager.officeTz.collectAsState(initial = SettingsManager.DEFAULT_TZ)
+                CompositionLocalProvider(LocalOfficeTz provides officeTz) {
+                    val isAuthenticated by securityManager.isAuthenticated.collectAsState()
                 val isLocked by appLockViewModel.isLocked.collectAsState()
                 val updateState by appUpdateViewModel.state.collectAsState()
                 var selectedTab by remember { mutableIntStateOf(0) }
@@ -195,6 +201,7 @@ class MainActivity : FragmentActivity() {
                         if (!isAuthenticated) {
                             LoginScreen(
                                 securityManager = securityManager,
+                                settingsManager = settingsManager,
                                 networkModule = networkModule,
                                 onLoginSuccess = { /* Flow will update automatically */ }
                             )
@@ -298,6 +305,7 @@ fun BleAdvertisingScreen(
 
     val refreshState = rememberPullToRefreshState()
     var isRefreshing by remember { mutableStateOf(false) }
+    val officeTz = LocalOfficeTz.current
 
     val fetchAttendanceData = suspend {
         isRefreshing = true
@@ -347,13 +355,13 @@ fun BleAdvertisingScreen(
             if (pollingJob == null || pollingJob?.isActive == false) {
                 pollingJob = launch {
                     val startTime = System.currentTimeMillis()
-                    val dhakaZone = TimeZone.getTimeZone("Asia/Dhaka")
+                    val timeZone = TimeZone.getTimeZone(officeTz)
                     while (System.currentTimeMillis() - startTime < 30000) {
                         try {
                             val present = authApi.getPresentEmployees()
-                            val now = Calendar.getInstance(dhakaZone).time
+                            val now = Calendar.getInstance(timeZone).time
                             val matched = present.any { record ->
-                                val entryDate = DateUtils.parseFlexibleTime(record.entryTime)
+                                val entryDate = DateUtils.parseFlexibleTime(record.entryTime, officeTz)
                                 entryDate != null && (now.time - entryDate.time) in 0..60000
                             }
                             if (matched) {
@@ -534,12 +542,13 @@ fun CurrentlyInOfficeCard(
     isLoading: Boolean
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val dhakaZone = remember { TimeZone.getTimeZone("Asia/Dhaka") }
-    val timeFormat = remember { 
-        SimpleDateFormat("hh:mm a", Locale.getDefault()).apply { timeZone = dhakaZone }
+    val officeTz = LocalOfficeTz.current
+    val timeZone = remember(officeTz) { TimeZone.getTimeZone(officeTz) }
+    val timeFormat = remember(timeZone) { 
+        SimpleDateFormat("hh:mm a", Locale.getDefault()).apply { this.timeZone = timeZone }
     }
-    val isoFormat = remember { 
-        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).apply { timeZone = dhakaZone }
+    val isoFormat = remember(timeZone) { 
+        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).apply { this.timeZone = timeZone }
     }
 
     Card(
@@ -629,12 +638,13 @@ fun LeftTodayCard(
     isLoading: Boolean
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val dhakaZone = remember { TimeZone.getTimeZone("Asia/Dhaka") }
-    val timeFormat = remember { 
-        SimpleDateFormat("hh:mm a", Locale.getDefault()).apply { timeZone = dhakaZone }
+    val officeTz = LocalOfficeTz.current
+    val timeZone = remember(officeTz) { TimeZone.getTimeZone(officeTz) }
+    val timeFormat = remember(timeZone) { 
+        SimpleDateFormat("hh:mm a", Locale.getDefault()).apply { this.timeZone = timeZone }
     }
-    val isoFormat = remember { 
-        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).apply { timeZone = dhakaZone }
+    val isoFormat = remember(timeZone) { 
+        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).apply { this.timeZone = timeZone }
     }
 
     Card(

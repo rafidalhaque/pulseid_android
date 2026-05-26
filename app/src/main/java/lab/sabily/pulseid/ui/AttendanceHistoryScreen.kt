@@ -37,14 +37,15 @@ fun AttendanceHistoryScreen(authApi: AuthApi, isAdmin: Boolean) {
     var showFromDatePicker by remember { mutableStateOf(false) }
     var showToDatePicker by remember { mutableStateOf(false) }
 
-    val dhakaZone = remember { TimeZone.getTimeZone("Asia/Dhaka") }
-    val dateFormat = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).apply { timeZone = dhakaZone } }
-    val displayFormat = remember { SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).apply { timeZone = dhakaZone } }
-    val isoFormat = remember { 
-        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).apply { timeZone = dhakaZone }
+    val officeTz = LocalOfficeTz.current
+    val timeZone = remember(officeTz) { TimeZone.getTimeZone(officeTz) }
+    val dateFormat = remember(timeZone) { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).apply { this.timeZone = timeZone } }
+    val displayFormat = remember(timeZone) { SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).apply { this.timeZone = timeZone } }
+    val isoFormat = remember(timeZone) { 
+        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).apply { this.timeZone = timeZone }
     }
-    val timeFormat = remember { 
-        SimpleDateFormat("hh:mm a", Locale.getDefault()).apply { timeZone = dhakaZone }
+    val timeFormat = remember(timeZone) { 
+        SimpleDateFormat("hh:mm a", Locale.getDefault()).apply { this.timeZone = timeZone }
     }
 
     val refreshState = rememberPullToRefreshState()
@@ -56,7 +57,7 @@ fun AttendanceHistoryScreen(authApi: AuthApi, isAdmin: Boolean) {
             val historyResponse = authApi.getAttendanceHistory(all = if (showAllRecords) true else null)
             
             if (historyResponse.success) {
-                allRecords = historyResponse.records.sortedByDescending { DateUtils.parseFlexibleDate(it.date) ?: Date(0) }
+                allRecords = historyResponse.records.sortedByDescending { DateUtils.parseFlexibleDate(it.date, officeTz) ?: Date(0) }
             } else {
                 error = "Failed to fetch data"
             }
@@ -74,7 +75,7 @@ fun AttendanceHistoryScreen(authApi: AuthApi, isAdmin: Boolean) {
 
     val filteredRecords = remember(allRecords, fromDate, toDate) {
         allRecords.filter { record ->
-            val recordDate = DateUtils.parseFlexibleDate(record.date)?.time ?: 0L
+            val recordDate = DateUtils.parseFlexibleDate(record.date, officeTz)?.time ?: 0L
             val afterFrom = fromDate?.let { recordDate >= it } ?: true
             val beforeTo = toDate?.let { recordDate <= it } ?: true
             afterFrom && beforeTo
@@ -231,6 +232,7 @@ fun AttendanceHistoryItem(
     displayFormat: SimpleDateFormat,
     dateFormat: SimpleDateFormat
 ) {
+    val officeTz = LocalOfficeTz.current
     val formatMinutes = { totalMinutes: Int? ->
         if (totalMinutes == null) "" else {
             val hours = totalMinutes / 60
@@ -250,15 +252,15 @@ fun AttendanceHistoryItem(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                val date = DateUtils.parseFlexibleDate(record.date)
+                val date = DateUtils.parseFlexibleDate(record.date, officeTz)
                 Text(
                     text = date?.let { displayFormat.format(it) } ?: record.date,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
 
-                val entry = DateUtils.parseFlexibleTime(record.entryTime)
-                val exit = DateUtils.parseFlexibleTime(record.exitTime)
+                val entry = DateUtils.parseFlexibleTime(record.entryTime, officeTz)
+                val exit = DateUtils.parseFlexibleTime(record.exitTime, officeTz)
                 val durationText = if (record.exitTime == null) {
                     "Still In Office"
                 } else if (entry != null && exit != null) {
@@ -287,7 +289,7 @@ fun AttendanceHistoryItem(
             Spacer(modifier = Modifier.height(8.dp))
 
             // Entry Row
-            val entryDate = DateUtils.parseFlexibleTime(record.entryTime)
+            val entryDate = DateUtils.parseFlexibleTime(record.entryTime, officeTz)
             val entryTimeStr = entryDate?.let { timeFormat.format(it) } ?: record.entryTime ?: "--:--"
             Text(text = "Entry: $entryTimeStr", style = MaterialTheme.typography.bodyLarge)
             if (record.lateEntry != null) {
@@ -310,7 +312,7 @@ fun AttendanceHistoryItem(
                     fontWeight = FontWeight.SemiBold
                 )
             } else {
-                val exitDate = DateUtils.parseFlexibleTime(record.exitTime)
+                val exitDate = DateUtils.parseFlexibleTime(record.exitTime, officeTz)
                 val exitTimeStr = exitDate?.let { timeFormat.format(it) } ?: record.exitTime ?: "--:--"
                 Text(text = "Exit: $exitTimeStr", style = MaterialTheme.typography.bodyLarge)
                 if (record.earlyExit != null) {

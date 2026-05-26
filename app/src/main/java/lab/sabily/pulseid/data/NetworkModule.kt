@@ -86,6 +86,9 @@ interface AuthApi {
 
     @POST("/api/iot/esp32/nvs")
     suspend fun generateNvs(@Body request: NvsGeneratorRequest): okhttp3.ResponseBody
+
+    @GET("/api/settings/tz")
+    suspend fun getTz(): TimezoneResponse
 }
 
 interface AppUpdateService {

@@ -40,14 +40,15 @@ fun MemberDetailScreen(
     var isRefreshing by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
-    val dhakaZone = remember { TimeZone.getTimeZone("Asia/Dhaka") }
-    val dateFormat = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).apply { timeZone = dhakaZone } }
-    val displayFormat = remember { SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).apply { timeZone = dhakaZone } }
-    val isoFormat = remember { 
-        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).apply { timeZone = dhakaZone }
+    val officeTz = LocalOfficeTz.current
+    val timeZone = remember(officeTz) { TimeZone.getTimeZone(officeTz) }
+    val dateFormat = remember(timeZone) { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).apply { this.timeZone = timeZone } }
+    val displayFormat = remember(timeZone) { SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).apply { this.timeZone = timeZone } }
+    val isoFormat = remember(timeZone) { 
+        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).apply { this.timeZone = timeZone }
     }
-    val timeFormat = remember { 
-        SimpleDateFormat("hh:mm a", Locale.getDefault()).apply { timeZone = dhakaZone }
+    val timeFormat = remember(timeZone) { 
+        SimpleDateFormat("hh:mm a", Locale.getDefault()).apply { this.timeZone = timeZone }
     }
 
     val fetchDetail = suspend {
@@ -57,7 +58,7 @@ fun MemberDetailScreen(
             
             if (response.success) {
                 employee = response.employee
-                history = response.history.sortedByDescending { DateUtils.parseFlexibleDate(it.date) ?: Date(0) }
+                history = response.history.sortedByDescending { DateUtils.parseFlexibleDate(it.date, officeTz) ?: Date(0) }
             } else {
                 error = "Failed to fetch details"
             }
