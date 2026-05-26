@@ -14,8 +14,8 @@ android {
         applicationId = "lab.sabily.pulseid"
         minSdk = 26
         targetSdk = 36
-        versionCode = 98
-        versionName = "1.20.2"
+        versionCode = 100
+        versionName = "1.20.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

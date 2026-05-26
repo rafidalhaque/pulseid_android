@@ -82,7 +82,9 @@ class Esp32ManagementViewModelTest {
         var shouldSucceed = true
         var shouldThrow = false
 
+        override suspend fun healthCheck(): GenericResponse = TODO()
         override suspend fun login(request: LoginRequest): LoginResponse = TODO()
+        override suspend fun onboardingLogin(request: OnboardingLoginRequest): LoginResponse = TODO()
         override suspend fun getProfile(): ProfileResponse = TODO()
         override suspend fun getEmployeeKey(): EmployeeKeyResponse = TODO()
         override suspend fun getPresentEmployees(): List<AttendanceRecord> = TODO()
@@ -115,5 +117,6 @@ class Esp32ManagementViewModelTest {
             }
         }
         override suspend fun generateNvs(request: NvsGeneratorRequest): okhttp3.ResponseBody = TODO()
+        override suspend fun getTz(): TimezoneResponse = TODO()
     }
 }

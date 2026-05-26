@@ -5,13 +5,13 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class LoginRequest(
-    val uuid: String,
+    val employee_id: String,
     val password: String
 )
 
 @Serializable
 data class OnboardingLoginRequest(
-    @SerialName("employee_id") val employeeId: String,
+    val employee_id: String,
     val password: String
 )
 

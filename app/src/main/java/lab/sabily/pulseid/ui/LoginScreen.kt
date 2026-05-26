@@ -27,8 +27,7 @@ fun LoginScreen(
     networkModule: NetworkModule,
     onLoginSuccess: () -> Unit
 ) {
-    var uuid by remember { mutableStateOf(securityManager.getEmployeeUuid() ?: "") }
-    val isFromKeystore = remember(uuid) { securityManager.getEmployeeUuid() != null && uuid == securityManager.getEmployeeUuid() }
+    var employeeId by remember { mutableStateOf(securityManager.getEmployeeUuid() ?: "") }
     
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
@@ -50,10 +49,9 @@ fun LoginScreen(
         Spacer(modifier = Modifier.height(32.dp))
 
         OutlinedTextField(
-            value = uuid,
-            onValueChange = { if (!isFromKeystore) uuid = it },
-            label = { Text("Employee UUID") },
-            readOnly = isFromKeystore,
+            value = employeeId,
+            onValueChange = { employeeId = it },
+            label = { Text("Employee ID") },
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(modifier = Modifier.height(8.dp))
@@ -86,10 +84,10 @@ fun LoginScreen(
                 errorMessage = null
                 scope.launch {
                     try {
-                        val response = networkModule.api.login(LoginRequest(uuid, password))
+                        val response = networkModule.api.login(LoginRequest(employee_id = employeeId, password = password))
                         if (response.success) {
-                            securityManager.saveToken(response.token)
-                            securityManager.saveEmployeeUuid(uuid)
+                            securityManager.saveJwtToken(response.token)
+                            securityManager.saveEmployeeUuid(employeeId)
                             
                             // Fire and forget timezone sync
                             launch {
@@ -114,7 +112,7 @@ fun LoginScreen(
                     }
                 }
             },
-            enabled = !isLoading && uuid.isNotEmpty() && password.isNotEmpty(),
+            enabled = !isLoading && employeeId.isNotEmpty() && password.isNotEmpty(),
             modifier = Modifier.fillMaxWidth()
         ) {
             if (isLoading) {
@@ -129,7 +127,7 @@ fun LoginScreen(
         TextButton(
             onClick = {
                 securityManager.clearAllData()
-                uuid = ""
+                employeeId = ""
                 password = ""
                 errorMessage = null
             },
