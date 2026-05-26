@@ -81,7 +81,11 @@ This is the most critical feature. The iOS app must generate the exact same dail
 The UI should map 1-to-1 with the Android Compose screens, utilizing SwiftUI navigation (`NavigationStack`, `TabView`).
 
 ### 4.1. Common/Employee Features
-*   **Login**: UUID and Password input.
+*   **Onboarding**: 
+    *   **Welcome**: Brief introduction and "Get Started" call to action.
+    *   **Server Setup**: Manual entry of server URL or QR code scan for quick configuration.
+    *   **Initial Login**: Authenticate with Employee ID and password to complete setup.
+*   **Login**: UUID and Password input (for subsequent logins).
 *   **Main Dashboard (Tab View)**:
     *   **At A Glance**: Today's attendance status.
     *   **History**: Attendance logs (entries/exits, late, early, overtime).

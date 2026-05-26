@@ -1,3 +1,7 @@
+##version_1.20.1
+- feat: match onboarding background with theme and update login API path
+- bump version to 1.20.1
+
 ##version_1.18.3
 - fix: add missing scroll imports in ProfileScreen and bump version to 1.18.3
 - feat: enhance app lock security, make profile scrollable, and show ESP32 NTP time
