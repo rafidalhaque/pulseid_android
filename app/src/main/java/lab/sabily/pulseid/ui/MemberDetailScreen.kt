@@ -1,5 +1,6 @@
 package lab.sabily.pulseid.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -12,14 +13,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.QrCode
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import lab.sabily.pulseid.data.AuthApi
 import lab.sabily.pulseid.data.Employee
 import lab.sabily.pulseid.data.AttendanceRecord
 import lab.sabily.pulseid.data.DateUtils
+import lab.sabily.pulseid.data.QrUtils
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -162,7 +167,15 @@ fun MemberDetailScreen(
 @Composable
 fun MemberProfileHeader(employee: Employee, onIdCopied: () -> Unit) {
     val clipboardManager = LocalClipboardManager.current
+    var showQrDialog by remember { mutableStateOf(false) }
     
+    if (showQrDialog) {
+        QrCodeDialog(
+            text = employee.id,
+            onDismiss = { showQrDialog = false }
+        )
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -190,7 +203,8 @@ fun MemberProfileHeader(employee: Employee, onIdCopied: () -> Unit) {
                 onCopyClick = {
                     clipboardManager.setText(AnnotatedString(employee.id))
                     onIdCopied()
-                }
+                },
+                onQrClick = { showQrDialog = true }
             )
             ProfileInfoRow(label = "Email", value = employee.email)
             ProfileInfoRow(label = "ID Number", value = employee.idNumber)
@@ -201,7 +215,73 @@ fun MemberProfileHeader(employee: Employee, onIdCopied: () -> Unit) {
 }
 
 @Composable
-fun ProfileInfoRow(label: String, value: String, onCopyClick: (() -> Unit)? = null) {
+fun QrCodeDialog(text: String, onDismiss: () -> Unit) {
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            shape = MaterialTheme.shapes.extraLarge,
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            )
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(24.dp)
+                    .fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Employee ID QR",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                val qrBitmap = remember(text) { QrUtils.generateQrCodeBitmap(text, 512) }
+                if (qrBitmap != null) {
+                    Image(
+                        bitmap = qrBitmap.asImageBitmap(),
+                        contentDescription = "Employee ID QR Code",
+                        modifier = Modifier.size(250.dp)
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier.size(250.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Failed to generate QR")
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Close")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ProfileInfoRow(
+    label: String, 
+    value: String, 
+    onCopyClick: (() -> Unit)? = null,
+    onQrClick: (() -> Unit)? = null
+) {
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         Text(
             text = label,
@@ -219,6 +299,21 @@ fun ProfileInfoRow(label: String, value: String, onCopyClick: (() -> Unit)? = nu
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                 modifier = Modifier.weight(1f)
             )
+            
+            if (onQrClick != null) {
+                IconButton(
+                    onClick = onQrClick,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.QrCode,
+                        contentDescription = "View QR Code",
+                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
+
             if (onCopyClick != null) {
                 IconButton(
                     onClick = onCopyClick,

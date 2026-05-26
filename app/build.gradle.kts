@@ -14,8 +14,8 @@ android {
         applicationId = "lab.sabily.pulseid"
         minSdk = 26
         targetSdk = 36
-        versionCode = 102
-        versionName = "1.20.6"
+        versionCode = 103
+        versionName = "1.20.7"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -55,6 +55,7 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
 
     // Security & Networking
+    implementation(libs.zxing.core)
     implementation("androidx.biometric:biometric:1.2.0-alpha05")
     implementation(libs.androidx.security.crypto)
     implementation(libs.retrofit)

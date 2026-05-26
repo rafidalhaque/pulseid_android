@@ -1,3 +1,8 @@
+##version_1.20.7
+- feat: add QR code scanning to Employee ID fields in login and onboarding
+- feat: add QR code generation and display in Admin Panel (Member Details)
+- bump version to 1.20.7 (103)
+
 ##version_1.20.6
 - fix: redirect to login instead of welcome on session expiration
 - feat: pre-fill employee ID in onboarding login screen
