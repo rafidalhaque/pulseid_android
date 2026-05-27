@@ -1,15 +1,22 @@
 package lab.sabily.pulseid.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import lab.sabily.pulseid.data.AuthApi
+import lab.sabily.pulseid.data.QrUtils
+import lab.sabily.pulseid.data.SecurityManager
 import lab.sabily.pulseid.ui.WorkPolicyListScreen
 import lab.sabily.pulseid.ui.AddWorkPolicyScreen
 import lab.sabily.pulseid.ui.EditWorkPolicyScreen
@@ -17,7 +24,7 @@ import lab.sabily.pulseid.ui.HolidaysScreen
 import lab.sabily.pulseid.ui.LeaveManagementScreen
 
 @Composable
-fun AdminScreen(authApi: AuthApi) {
+fun AdminScreen(authApi: AuthApi, securityManager: SecurityManager) {
     var currentSubScreen by remember { mutableStateOf<AdminSubScreen?>(null) }
     var selectedEmployeeId by remember { mutableStateOf<String?>(null) }
     var employeeToEdit by remember { mutableStateOf<lab.sabily.pulseid.data.Employee?>(null) }
@@ -36,6 +43,7 @@ fun AdminScreen(authApi: AuthApi) {
             AdminSubScreen.ESP32_MANAGEMENT -> null
             AdminSubScreen.REPORTS -> null
             AdminSubScreen.SETTINGS -> null
+            AdminSubScreen.SERVER_URL -> AdminSubScreen.SETTINGS
             AdminSubScreen.NVS_GENERATOR -> AdminSubScreen.ESP32_MANAGEMENT
             AdminSubScreen.ADD_HOLIDAY -> AdminSubScreen.HOLIDAYS
             AdminSubScreen.ADD_WORK_POLICY -> AdminSubScreen.WORK_POLICY
@@ -302,6 +310,82 @@ fun AdminScreen(authApi: AuthApi) {
                 ) {
                     Text("Import Employee")
                 }
+
+                Button(
+                    onClick = { currentSubScreen = AdminSubScreen.SERVER_URL },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Server URL")
+                }
+            }
+        }
+        AdminSubScreen.SERVER_URL -> {
+            val serverUrl = securityManager.getBaseUrl() ?: ""
+            val clipboardManager = LocalClipboardManager.current
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.Top)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = { currentSubScreen = AdminSubScreen.SETTINGS }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                    Text("Server URL", style = MaterialTheme.typography.titleLarge)
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Card(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("Current Server URL:", style = MaterialTheme.typography.labelMedium)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = serverUrl,
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.weight(1f)
+                            )
+                            IconButton(onClick = {
+                                clipboardManager.setText(AnnotatedString(serverUrl))
+                            }) {
+                                Icon(
+                                    imageVector = Icons.Default.ContentCopy,
+                                    contentDescription = "Copy URL"
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text("Server QR Code", style = MaterialTheme.typography.titleMedium)
+                
+                val qrBitmap = remember(serverUrl) { 
+                    if (serverUrl.isNotBlank()) QrUtils.generateQrCodeBitmap(serverUrl, 512) else null 
+                }
+
+                if (qrBitmap != null) {
+                    Image(
+                        bitmap = qrBitmap.asImageBitmap(),
+                        contentDescription = "Server URL QR Code",
+                        modifier = Modifier.size(250.dp)
+                    )
+                } else {
+                    Text("No Server URL configured")
+                }
             }
         }
         null -> {
@@ -353,5 +437,5 @@ fun AdminScreen(authApi: AuthApi) {
 }
 
 enum class AdminSubScreen {
-    IMPORT, LOGS, ALL_EMPLOYEES, EMPLOYEE_DETAIL, ADD_EMPLOYEE, EDIT_EMPLOYEE, ADD_HOLIDAY, HOLIDAYS, WORK_POLICY, ADD_WORK_POLICY, EDIT_WORK_POLICY, LEAVE_REQUESTS, ATTENDANCE_SHEET, AT_A_GLANCE, ESP32_MANAGEMENT, NVS_GENERATOR, REPORTS, SETTINGS
+    IMPORT, LOGS, ALL_EMPLOYEES, EMPLOYEE_DETAIL, ADD_EMPLOYEE, EDIT_EMPLOYEE, ADD_HOLIDAY, HOLIDAYS, WORK_POLICY, ADD_WORK_POLICY, EDIT_WORK_POLICY, LEAVE_REQUESTS, ATTENDANCE_SHEET, AT_A_GLANCE, ESP32_MANAGEMENT, NVS_GENERATOR, REPORTS, SETTINGS, SERVER_URL
 }

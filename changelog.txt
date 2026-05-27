@@ -1,3 +1,8 @@
+##version_1.20.10
+- feat: add "Server URL" screen to Admin Settings
+- feat: support viewing, copying, and scanning (via QR) office server URL
+- bump version to 1.20.10 (106)
+
 ##version_1.20.9
 - feat: redesign Admin tab by grouping actions into Reports and Settings sub-screens
 - feat: update navigation logic for new Admin sub-screens

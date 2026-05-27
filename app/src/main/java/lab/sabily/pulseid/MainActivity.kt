@@ -301,7 +301,10 @@ fun MainAppContent(
                         )
                         2 -> {
                             if (isAdmin) {
-                                AdminScreen(authApi = networkModule.api)
+                                AdminScreen(
+                                    authApi = networkModule.api,
+                                    securityManager = securityManager
+                                )
                             } else {
                                 LeaveScreen(authApi = networkModule.api)
                             }
