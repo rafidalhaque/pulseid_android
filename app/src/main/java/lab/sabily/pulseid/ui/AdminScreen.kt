@@ -25,15 +25,17 @@ fun AdminScreen(authApi: AuthApi) {
 
     BackHandler(enabled = currentSubScreen != null) {
         currentSubScreen = when (currentSubScreen) {
-            AdminSubScreen.IMPORT -> null
-            AdminSubScreen.LOGS -> null
+            AdminSubScreen.IMPORT -> AdminSubScreen.SETTINGS
+            AdminSubScreen.LOGS -> AdminSubScreen.REPORTS
             AdminSubScreen.ALL_EMPLOYEES -> null
-            AdminSubScreen.HOLIDAYS -> null
-            AdminSubScreen.WORK_POLICY -> null
+            AdminSubScreen.HOLIDAYS -> AdminSubScreen.SETTINGS
+            AdminSubScreen.WORK_POLICY -> AdminSubScreen.SETTINGS
             AdminSubScreen.LEAVE_REQUESTS -> null
-            AdminSubScreen.ATTENDANCE_SHEET -> null
-            AdminSubScreen.AT_A_GLANCE -> null
+            AdminSubScreen.ATTENDANCE_SHEET -> AdminSubScreen.REPORTS
+            AdminSubScreen.AT_A_GLANCE -> AdminSubScreen.REPORTS
             AdminSubScreen.ESP32_MANAGEMENT -> null
+            AdminSubScreen.REPORTS -> null
+            AdminSubScreen.SETTINGS -> null
             AdminSubScreen.NVS_GENERATOR -> AdminSubScreen.ESP32_MANAGEMENT
             AdminSubScreen.ADD_HOLIDAY -> AdminSubScreen.HOLIDAYS
             AdminSubScreen.ADD_WORK_POLICY -> AdminSubScreen.WORK_POLICY
@@ -216,6 +218,92 @@ fun AdminScreen(authApi: AuthApi) {
                 )
             }
         }
+        AdminSubScreen.REPORTS -> {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.Top)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = { currentSubScreen = null }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                    Text("Reports", style = MaterialTheme.typography.titleLarge)
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Button(
+                    onClick = { currentSubScreen = AdminSubScreen.ATTENDANCE_SHEET },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Attendance Sheet")
+                }
+
+                Button(
+                    onClick = { currentSubScreen = AdminSubScreen.AT_A_GLANCE },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("At A Glance")
+                }
+
+                Button(
+                    onClick = { currentSubScreen = AdminSubScreen.LOGS },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Attendance Logs")
+                }
+            }
+        }
+        AdminSubScreen.SETTINGS -> {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.Top)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = { currentSubScreen = null }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                    Text("Settings", style = MaterialTheme.typography.titleLarge)
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Button(
+                    onClick = { currentSubScreen = AdminSubScreen.HOLIDAYS },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Holidays")
+                }
+
+                Button(
+                    onClick = { currentSubScreen = AdminSubScreen.WORK_POLICY },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Work Policy")
+                }
+
+                Button(
+                    onClick = { currentSubScreen = AdminSubScreen.IMPORT },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Import Employee")
+                }
+            }
+        }
         null -> {
             Column(
                 modifier = Modifier
@@ -240,45 +328,17 @@ fun AdminScreen(authApi: AuthApi) {
                 }
 
                 Button(
-                    onClick = { currentSubScreen = AdminSubScreen.LOGS },
+                    onClick = { currentSubScreen = AdminSubScreen.REPORTS },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Attendance Logs")
+                    Text("Reports")
                 }
 
                 Button(
-                    onClick = { currentSubScreen = AdminSubScreen.IMPORT },
+                    onClick = { currentSubScreen = AdminSubScreen.SETTINGS },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Import Employee")
-                }
-
-                Button(
-                    onClick = { currentSubScreen = AdminSubScreen.HOLIDAYS },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Holidays")
-                }
-
-                Button(
-                    onClick = { currentSubScreen = AdminSubScreen.WORK_POLICY },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Work Policy")
-                }
-
-                Button(
-                    onClick = { currentSubScreen = AdminSubScreen.ATTENDANCE_SHEET },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Attendance Sheet")
-                }
-
-                Button(
-                    onClick = { currentSubScreen = AdminSubScreen.AT_A_GLANCE },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("At A Glance")
+                    Text("Settings")
                 }
 
                 Button(
@@ -293,5 +353,5 @@ fun AdminScreen(authApi: AuthApi) {
 }
 
 enum class AdminSubScreen {
-    IMPORT, LOGS, ALL_EMPLOYEES, EMPLOYEE_DETAIL, ADD_EMPLOYEE, EDIT_EMPLOYEE, ADD_HOLIDAY, HOLIDAYS, WORK_POLICY, ADD_WORK_POLICY, EDIT_WORK_POLICY, LEAVE_REQUESTS, ATTENDANCE_SHEET, AT_A_GLANCE, ESP32_MANAGEMENT, NVS_GENERATOR
+    IMPORT, LOGS, ALL_EMPLOYEES, EMPLOYEE_DETAIL, ADD_EMPLOYEE, EDIT_EMPLOYEE, ADD_HOLIDAY, HOLIDAYS, WORK_POLICY, ADD_WORK_POLICY, EDIT_WORK_POLICY, LEAVE_REQUESTS, ATTENDANCE_SHEET, AT_A_GLANCE, ESP32_MANAGEMENT, NVS_GENERATOR, REPORTS, SETTINGS
 }
