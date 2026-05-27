@@ -1,3 +1,8 @@
+##version_1.20.11
+- feat: implement configurable Auto App Lock interval (Immediately to 5 minutes)
+- feat: add interval selection dropdown to Profile settings
+- bump version to 1.20.11 (107)
+
 ##version_1.20.10
 - feat: add "Server URL" screen to Admin Settings
 - feat: support viewing, copying, and scanning (via QR) office server URL

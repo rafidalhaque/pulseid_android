@@ -332,6 +332,47 @@ fun AppLockSettings(securityManager: SecurityManager, onNavigateToAppLockSetup: 
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
             }
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+            val intervalOptions = listOf(
+                "Immediately" to 0L,
+                "15 seconds" to 15000L,
+                "30 seconds" to 30000L,
+                "1 minute" to 60000L,
+                "5 minutes" to 300000L
+            )
+
+            var expanded by remember { mutableStateOf(false) }
+            val currentInterval = securityManager.getAppLockInterval()
+            val selectedOption = intervalOptions.find { it.second == currentInterval }?.first ?: "30 seconds"
+
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Auto Lock Interval")
+                Box {
+                    TextButton(onClick = { expanded = true }) {
+                        Text(selectedOption)
+                    }
+                    DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        intervalOptions.forEach { (label, value) ->
+                            DropdownMenuItem(
+                                text = { Text(label) },
+                                onClick = {
+                                    securityManager.saveAppLockInterval(value)
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }

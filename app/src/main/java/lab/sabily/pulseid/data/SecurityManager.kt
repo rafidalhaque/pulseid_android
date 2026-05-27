@@ -97,10 +97,17 @@ class SecurityManager(context: Context) {
         prefs.edit().putBoolean(KEY_APP_LOCK_BIOMETRIC_ENABLED, enabled).apply()
     }
 
+    fun getAppLockInterval(): Long = prefs.getLong(KEY_APP_LOCK_INTERVAL, 30000L)
+
+    fun saveAppLockInterval(intervalMs: Long) {
+        prefs.edit().putLong(KEY_APP_LOCK_INTERVAL, intervalMs).apply()
+    }
+
     fun clearAppLock() {
         prefs.edit()
             .remove(KEY_APP_LOCK_PIN)
             .remove(KEY_APP_LOCK_BIOMETRIC_ENABLED)
+            .remove(KEY_APP_LOCK_INTERVAL)
             .putBoolean(KEY_APP_LOCK_ENABLED, false)
             .apply()
     }
@@ -124,5 +131,6 @@ class SecurityManager(context: Context) {
         private const val KEY_APP_LOCK_PIN = "app_lock_pin"
         private const val KEY_APP_LOCK_BIOMETRIC_ENABLED = "app_lock_biometric_enabled"
         private const val KEY_APP_LOCK_ENABLED = "app_lock_enabled"
+        private const val KEY_APP_LOCK_INTERVAL = "app_lock_interval"
     }
 }

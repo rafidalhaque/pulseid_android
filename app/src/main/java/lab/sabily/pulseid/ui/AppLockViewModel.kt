@@ -24,7 +24,7 @@ class AppLockViewModel(private val securityManager: SecurityManager) : ViewModel
     override fun onStart(owner: LifecycleOwner) {
         if (securityManager.isAppLockEnabled() && backgroundTimestamp != 0L) {
             val elapsed = System.currentTimeMillis() - backgroundTimestamp
-            if (elapsed > 30000) { // 30 seconds
+            if (elapsed >= securityManager.getAppLockInterval()) {
                 _isLocked.value = true
             }
             backgroundTimestamp = 0

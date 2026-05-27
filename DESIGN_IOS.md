@@ -21,10 +21,11 @@ The iOS app should follow a modern, declarative architecture mirroring the Andro
     *   `auth_token` (Bearer token for API)
     *   `employee_uuid` (User's unique identifier)
     *   `app_lock_pin` (Hashed user PIN)
-    *   `app_lock_enabled` / `app_lock_biometric_enabled` (Preferences)
+    *   `app_lock_enabled` / `app_lock_biometric_enabled` / `app_lock_interval` (Preferences)
 *   **App Lock**:
     *   Implement a custom PIN entry screen in SwiftUI.
     *   Use the **LocalAuthentication** framework (`LAContext`) to support FaceID/TouchID.
+    *   Support a configurable idle timeout interval (e.g., Immediately, 15s, 30s, 1m, 5m) before the app automatically locks.
 
 ### 3.2. BLE Advertising (`BleAdvertiser` & `BleKeyManager`)
 This is the most critical feature. The iOS app must generate the exact same daily UUID to be recognized by the ESP32 receivers.
