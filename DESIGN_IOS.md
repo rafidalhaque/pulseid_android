@@ -39,7 +39,9 @@ This is the most critical feature. The iOS app must generate the exact same dail
 
 ### 3.3. Networking & API Paths (`NetworkModule`)
 *   **Base URL**: `https://pulseid.teamsabily.online`
-*   **Interceptors**: Auto-inject the `Authorization: Bearer <token>` header into all calls. Handle 401 Unauthorized by logging the user out.
+*   **Interceptors**: Auto-inject the `Authorization: Bearer <token>` header into all calls. Handle 401 Unauthorized by clearing the token and redirecting the user:
+    *   If a **Server URL** is already configured, redirect to the **Login** screen.
+    *   If no server is configured, redirect to the **Welcome** screen.
 *   **Endpoints**:
     *   **Auth**:
         *   `POST /api/login` - Authenticate user.
@@ -77,6 +79,10 @@ This is the most critical feature. The iOS app must generate the exact same dail
 *   **Flow**: On app launch (in the main view's `onAppear` or via a dedicated view model), the app checks the latest available version against the current installed version.
 *   **UI**: If a newer version is available, present a standard SwiftUI `Alert` prompting the user to update ("Update Available"), with actions to "Update Now" (redirects to App Store/Download URL) or "Later".
 
+### 3.5. QR Utilities
+*   **Scanning**: Use **AVFoundation** (`AVCaptureMetadataOutput`) or **Vision** framework to scan QR codes for Server URL and Employee ID.
+*   **Generation**: Use **Core Image** (`CIFilter(name: "CIQRCodeGenerator")`) to generate QR code images from employee UUIDs (Member Details) and Server URL (Admin Settings).
+
 ## 4. Features & UI Screens
 The UI should map 1-to-1 with the Android Compose screens, utilizing SwiftUI navigation (`NavigationStack`, `TabView`).
 
@@ -84,8 +90,12 @@ The UI should map 1-to-1 with the Android Compose screens, utilizing SwiftUI nav
 *   **Onboarding**: 
     *   **Welcome**: Brief introduction and "Get Started" call to action.
     *   **Server Setup**: Manual entry of server URL or QR code scan for quick configuration.
-    *   **Initial Login**: Authenticate with Employee ID and password to complete setup.
-*   **Login**: UUID and Password input (for subsequent logins).
+    *   **Login (Initial & Re-auth)**: 
+        *   Used for both first-time setup and subsequent logins after session expiration.
+        *   **Employee ID Scanning**: Supports filling the ID via QR code scan.
+        *   **Smart Pre-fill**: If an Employee ID is already stored (e.g., during re-auth), it is automatically pre-filled and set to **Read-Only** to prevent accidental edits.
+        *   **Clear Data**: If the ID is pre-filled, a "Clear Data" option is provided to wipe the stored ID and Server URL, allowing the user to reset the entire setup.
+        *   **Back Navigation**: Allows returning to the Server Setup screen.
 *   **Main Dashboard (Tab View)**:
     *   **At A Glance**: Today's attendance status.
     *   **History**: Attendance logs (entries/exits, late, early, overtime).
@@ -94,10 +104,19 @@ The UI should map 1-to-1 with the Android Compose screens, utilizing SwiftUI nav
 *   **App Lock**: Shown on app resume if enabled.
 
 ### 4.2. Admin Features (Shown conditionally based on `isAdmin`)
-*   **Employee Management**: Add, Edit, Import (CSV/Multipart), View all members.
-*   **Attendance Management**: View present/left employees, raw attendance logs.
+*   **Employee Management**: 
+    *   Add, Edit, Import (CSV/Multipart).
+    *   **Member Details**: View profile, copy UUID, and **View QR Code** (generates a scannable QR of the employee's UUID).
+*   **Reports (Grouped Screen)**:
+    *   **Attendance Sheet**: View currently present/left employees.
+    *   **At A Glance**: Monthly attendance summary and export.
+    *   **Attendance Logs**: Raw BLE scan logs.
 *   **Leave Management**: Approve/Reject leave requests.
-*   **Settings**: Manage Holidays and Work Policies.
+*   **Settings (Grouped Screen)**:
+    *   **Holidays**: Manage office holidays.
+    *   **Work Policy**: Manage work hours and policies.
+    *   **Import Employee**: Bulk import via CSV.
+    *   **Server URL**: View current server URL, copy to clipboard, and **View QR Code** (generates a scannable QR of the server URL).
 *   **IoT (ESP32) Management**: Ping devices, send commands, generate NVS configs.
 
 ## 5. Design & Styling
