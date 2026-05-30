@@ -111,13 +111,17 @@ class NetworkModule(private val securityManager: SecurityManager) {
         
         val requestBuilder = originalRequest.newBuilder()
         requestBuilder.header("Cache-Control", "no-cache")
-        if (token != null) {
+        
+        // Don't add token to login requests to avoid sending old/expired tokens
+        val isLoginRequest = originalRequest.url.encodedPath.contains("/api/login")
+        if (token != null && !isLoginRequest) {
             requestBuilder.header("Authorization", "Bearer $token")
         }
         
         val response = chain.proceed(requestBuilder.build())
         
-        if (response.code == 401) {
+        // Only clear token if we actually sent one and got a 401
+        if (response.code == 401 && token != null && !isLoginRequest) {
             securityManager.clearToken()
         }
         

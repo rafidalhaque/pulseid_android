@@ -1,3 +1,10 @@
+##version_1.21.2
+- fix: ensure auth token is attached to requests after login
+- fix: use synchronous commit() for JWT token to avoid race conditions
+- fix: prevent clearing newly saved token on 401 if request was missing token
+- fix: exclude login requests from Authorization header to avoid sending expired tokens
+- bump version to 1.21.2 (110)
+
 ##version_1.21.1
 - fix: resolve 'unresolved reference scope' compilation error in MainActivity.kt
 - bump version to 1.21.1 (109)

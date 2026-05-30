@@ -41,7 +41,7 @@ class SecurityManager(context: Context) {
     }
 
     fun saveJwtToken(token: String) {
-        prefs.edit().putString(KEY_JWT_TOKEN, token).apply()
+        prefs.edit().putString(KEY_JWT_TOKEN, token).commit()
         _isAuthenticated.value = true
     }
 
