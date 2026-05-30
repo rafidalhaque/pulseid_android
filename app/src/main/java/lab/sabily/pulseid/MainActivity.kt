@@ -69,10 +69,14 @@ import androidx.lifecycle.ViewModelProvider
 import java.text.SimpleDateFormat
 import java.util.*
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.flow.firstOrNull
+import lab.sabily.pulseid.worker.NtfyPollWorker
 
 class MainActivity : FragmentActivity() {
     private lateinit var appLockViewModel: AppLockViewModel
     private lateinit var appUpdateViewModel: AppUpdateViewModel
+    private var deepLinkRoute = mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -83,16 +87,36 @@ class MainActivity : FragmentActivity() {
         val networkModule = NetworkModule(securityManager)
         val bleKeyManager = BleKeyManager(networkModule.api, securityManager, settingsManager)
 
+        handleDeepLink(intent)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1001)
+            }
+        }
+
         appLockViewModel = ViewModelProvider(this, AppLockViewModel.Factory(securityManager))[AppLockViewModel::class.java]
         ProcessLifecycleOwner.get().lifecycle.addObserver(appLockViewModel)
 
         appUpdateViewModel = ViewModelProvider(this, AppUpdateViewModel.Factory(application, networkModule.updateApi))[AppUpdateViewModel::class.java]
+
+        if (securityManager.getToken() != null) {
+            lifecycleScope.launch {
+                val topic = settingsManager.ntfyTopic.firstOrNull()
+                val token = settingsManager.ntfyToken.firstOrNull()
+                if (topic != null && token != null) {
+                    NtfyPollWorker.schedule(this@MainActivity)
+                }
+            }
+        }
 
         setContent {
             PulseIDTheme {
                 val officeTz by settingsManager.officeTz.collectAsState(initial = SettingsManager.DEFAULT_TZ)
                 CompositionLocalProvider(LocalOfficeTz provides officeTz) {
                     val navController = rememberNavController()
+                    val route by deepLinkRoute
+
                     val startDestination = remember {
                         if (securityManager.getToken() != null && securityManager.getBaseUrl() != null) {
                             "main"
@@ -135,7 +159,10 @@ class MainActivity : FragmentActivity() {
                                 bleKeyManager = bleKeyManager,
                                 appLockViewModel = appLockViewModel,
                                 appUpdateViewModel = appUpdateViewModel,
+                                deepLinkRoute = route,
+                                onDeepLinkHandled = { deepLinkRoute.value = null },
                                 onLogout = {
+                                    NtfyPollWorker.cancel(this@MainActivity)
                                     val destination = if (securityManager.getBaseUrl() != null) "onboarding/login" else "onboarding/welcome"
                                     navController.navigate(destination) {
                                         popUpTo(0) { inclusive = true }
@@ -145,6 +172,20 @@ class MainActivity : FragmentActivity() {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleDeepLink(intent)
+    }
+
+    private fun handleDeepLink(intent: Intent?) {
+        intent?.data?.let { uri ->
+            if (uri.scheme == "pulseid") {
+                deepLinkRoute.value = uri.toString()
             }
         }
     }
@@ -158,6 +199,8 @@ fun MainAppContent(
     bleKeyManager: BleKeyManager,
     appLockViewModel: AppLockViewModel,
     appUpdateViewModel: AppUpdateViewModel,
+    deepLinkRoute: String?,
+    onDeepLinkHandled: () -> Unit,
     onLogout: () -> Unit
 ) {
     val isAuthenticated by securityManager.isAuthenticated.collectAsState()
@@ -176,6 +219,25 @@ fun MainAppContent(
     var isAdmin by remember { mutableStateOf(false) }
     var isSettingUpPin by remember { mutableStateOf(false) }
     var showUpdateDialog by remember { mutableStateOf(false) }
+    var adminSubScreen by remember { mutableStateOf<AdminSubScreen?>(null) }
+
+    LaunchedEffect(deepLinkRoute, isAdmin) {
+        if (deepLinkRoute != null) {
+            when (deepLinkRoute) {
+                "pulseid://leaves/pending" -> {
+                    if (isAdmin) {
+                        selectedTab = 2
+                        adminSubScreen = AdminSubScreen.LEAVE_REQUESTS
+                        onDeepLinkHandled()
+                    }
+                }
+                "pulseid://leaves/my" -> {
+                    selectedTab = if (isAdmin) 3 else 2
+                    onDeepLinkHandled()
+                }
+            }
+        }
+    }
 
     LaunchedEffect(Unit) {
         appUpdateViewModel.checkForUpdates(silent = true)
@@ -303,7 +365,9 @@ fun MainAppContent(
                             if (isAdmin) {
                                 AdminScreen(
                                     authApi = networkModule.api,
-                                    securityManager = securityManager
+                                    securityManager = securityManager,
+                                    initialSubScreen = adminSubScreen,
+                                    onSubScreenChange = { adminSubScreen = it }
                                 )
                             } else {
                                 LeaveScreen(authApi = networkModule.api)
@@ -319,6 +383,9 @@ fun MainAppContent(
                                     onLogout = {
                                         securityManager.clearToken()
                                         bleKeyManager.clearSecret()
+                                        scope.launch {
+                                            settingsManager.clearAll()
+                                        }
                                     },
                                     onNavigateToAppLockSetup = { isSettingUpPin = true },
                                     appUpdateViewModel = appUpdateViewModel
@@ -333,6 +400,9 @@ fun MainAppContent(
                                     onLogout = {
                                         securityManager.clearToken()
                                         bleKeyManager.clearSecret()
+                                        scope.launch {
+                                            settingsManager.clearAll()
+                                        }
                                     },
                                     onNavigateToAppLockSetup = { isSettingUpPin = true },
                                     appUpdateViewModel = appUpdateViewModel

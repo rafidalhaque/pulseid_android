@@ -22,6 +22,7 @@ The iOS app should follow a modern, declarative architecture mirroring the Andro
     *   `employee_uuid` (User's unique identifier)
     *   `app_lock_pin` (Hashed user PIN)
     *   `app_lock_enabled` / `app_lock_biometric_enabled` / `app_lock_interval` (Preferences)
+    *   `ntfy_topic` / `ntfy_token` (Push notification credentials)
 *   **App Lock**:
     *   Implement a custom PIN entry screen in SwiftUI.
     *   Use the **LocalAuthentication** framework (`LAContext`) to support FaceID/TouchID.
@@ -75,12 +76,28 @@ This is the most critical feature. The iOS app must generate the exact same dail
         *   `POST /api/admin/esp32/command` - Send device command.
         *   `POST /api/iot/esp32/nvs` - Generate NVS configuration.
 
-### 3.4. App Update Checking (`AppUpdateService`)
+### 3.4. Push Notifications via ntfy (`NtfyPollWorker`)
+iOS implementation should use **Background Tasks** framework to poll ntfy periodically (every 15-30 mins).
+*   **ntfy Server**: `https://notify.teamsabily.qzz.io`
+*   **Credentials**: Stored in Keychain (`ntfy_topic` and `ntfy_token`).
+*   **Polling Endpoint**: `GET /{ntfy_topic}/json?poll=1&since=15m` with `Authorization: Bearer {ntfy_token}`.
+*   **Logic**:
+    *   Parse NDJSON response.
+    *   If `event == "message"`, show a local `UNUserNotificationCenter` notification.
+    *   `title` = message title, `body` = message body.
+    *   Set notification category/action to handle the `click` URL.
+*   **Deep Linking**:
+    *   Support `pulseid://` scheme.
+    *   `pulseid://leaves/pending` -> Admin Leave Requests.
+    *   `pulseid://leaves/my` -> My Leave Requests.
+*   **Trigger**: Schedule background task on login/app launch, cancel on logout.
+
+### 3.5. App Update Checking (`AppUpdateService`)
 *   **Endpoint**: `GET /api/app/version?platform=ios` (Change default `android` to `ios`).
 *   **Flow**: On app launch (in the main view's `onAppear` or via a dedicated view model), the app checks the latest available version against the current installed version.
 *   **UI**: If a newer version is available, present a standard SwiftUI `Alert` prompting the user to update ("Update Available"), with actions to "Update Now" (redirects to App Store/Download URL) or "Later".
 
-### 3.5. QR Utilities
+### 3.6. QR Utilities
 *   **Scanning**: Use **AVFoundation** (`AVCaptureMetadataOutput`) or **Vision** framework to scan QR codes for Server URL and Employee ID.
 *   **Generation**: Use **Core Image** (`CIFilter(name: "CIQRCodeGenerator")`) to generate QR code images from employee UUIDs (Member Details) and Server URL (Admin Settings).
 

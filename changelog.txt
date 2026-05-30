@@ -1,3 +1,11 @@
+##version_1.21.0
+- feat: implement Push Notifications via ntfy (self-hosted)
+- feat: implement background polling with NtfyPollWorker (every 15m)
+- feat: implement deep linking with pulseid:// scheme
+- feat: support navigation to pending and personal leave screens from notifications
+- fix: automatic worker cancellation on logout
+- bump version to 1.21.0 (108)
+
 ##version_1.20.11
 - feat: implement configurable Auto App Lock interval (Immediately to 5 minutes)
 - feat: add interval selection dropdown to Profile settings

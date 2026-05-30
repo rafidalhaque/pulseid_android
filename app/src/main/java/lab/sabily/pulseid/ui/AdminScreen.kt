@@ -24,8 +24,24 @@ import lab.sabily.pulseid.ui.HolidaysScreen
 import lab.sabily.pulseid.ui.LeaveManagementScreen
 
 @Composable
-fun AdminScreen(authApi: AuthApi, securityManager: SecurityManager) {
-    var currentSubScreen by remember { mutableStateOf<AdminSubScreen?>(null) }
+fun AdminScreen(
+    authApi: AuthApi,
+    securityManager: SecurityManager,
+    initialSubScreen: AdminSubScreen? = null,
+    onSubScreenChange: (AdminSubScreen?) -> Unit = {}
+) {
+    var currentSubScreen by remember { mutableStateOf<AdminSubScreen?>(initialSubScreen) }
+    
+    LaunchedEffect(initialSubScreen) {
+        if (initialSubScreen != null) {
+            currentSubScreen = initialSubScreen
+        }
+    }
+
+    LaunchedEffect(currentSubScreen) {
+        onSubScreenChange(currentSubScreen)
+    }
+
     var selectedEmployeeId by remember { mutableStateOf<String?>(null) }
     var employeeToEdit by remember { mutableStateOf<lab.sabily.pulseid.data.Employee?>(null) }
     var policyToEdit by remember { mutableStateOf<lab.sabily.pulseid.data.WorkPolicy?>(null) }

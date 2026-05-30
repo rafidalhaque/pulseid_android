@@ -18,7 +18,9 @@ data class OnboardingLoginRequest(
 @Serializable
 data class LoginResponse(
     val success: Boolean,
-    val token: String
+    val token: String,
+    @SerialName("ntfy_topic") val ntfyTopic: String? = null,
+    @SerialName("ntfy_token") val ntfyToken: String? = null
 )
 
 @Serializable
@@ -279,4 +281,13 @@ data class VersionInfo(
     @SerialName("version_code") val versionCode: Int,
     @SerialName("version_name") val versionName: String,
     @SerialName("download_url") val downloadUrl: String
+)
+
+@Serializable
+data class NtfyMessage(
+    val id: String,
+    val event: String,
+    val title: String? = null,
+    val message: String? = null,
+    val click: String? = null
 )

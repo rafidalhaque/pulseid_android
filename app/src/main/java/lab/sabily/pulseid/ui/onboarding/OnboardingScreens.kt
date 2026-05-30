@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import lab.sabily.pulseid.R
 import lab.sabily.pulseid.data.*
+import lab.sabily.pulseid.worker.NtfyPollWorker
 
 @Composable
 fun WelcomeScreen(onGetStarted: () -> Unit) {
@@ -363,6 +364,12 @@ fun OnboardingLoginScreen(
                                     val response = networkModule.api.onboardingLogin(OnboardingLoginRequest(employee_id = employeeId, password = password))
                                     if (response.success) {
                                         securityManager.saveJwtToken(response.token)
+                                        settingsManager.saveJwtToken(response.token)
+                                        settingsManager.saveNtfyCredentials(response.ntfyTopic, response.ntfyToken)
+                                        
+                                        if (response.ntfyTopic != null && response.ntfyToken != null) {
+                                            NtfyPollWorker.schedule(context)
+                                        }
                                         
                                         // Fetch profile to get real UUID and admin status
                                         try {
