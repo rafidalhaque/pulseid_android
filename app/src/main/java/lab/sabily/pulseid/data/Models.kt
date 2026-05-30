@@ -286,6 +286,7 @@ data class VersionInfo(
 @Serializable
 data class NtfyMessage(
     val id: String,
+    val time: Long,
     val event: String,
     val title: String? = null,
     val message: String? = null,

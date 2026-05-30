@@ -71,7 +71,7 @@ import java.util.*
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.flow.firstOrNull
-import lab.sabily.pulseid.worker.NtfyPollWorker
+import lab.sabily.pulseid.worker.NtfyForegroundService
 
 class MainActivity : FragmentActivity() {
     private lateinit var appLockViewModel: AppLockViewModel
@@ -105,7 +105,7 @@ class MainActivity : FragmentActivity() {
                 val topic = settingsManager.ntfyTopic.firstOrNull()
                 val token = settingsManager.ntfyToken.firstOrNull()
                 if (topic != null && token != null) {
-                    NtfyPollWorker.schedule(this@MainActivity)
+                    NtfyForegroundService.start(this@MainActivity)
                 }
             }
         }
@@ -162,7 +162,7 @@ class MainActivity : FragmentActivity() {
                                 deepLinkRoute = route,
                                 onDeepLinkHandled = { deepLinkRoute.value = null },
                                 onLogout = {
-                                    NtfyPollWorker.cancel(this@MainActivity)
+                                    NtfyForegroundService.stop(this@MainActivity)
                                     val destination = if (securityManager.getBaseUrl() != null) "onboarding/login" else "onboarding/welcome"
                                     navController.navigate(destination) {
                                         popUpTo(0) { inclusive = true }

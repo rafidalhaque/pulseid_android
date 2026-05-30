@@ -1,3 +1,14 @@
+##version_1.21.4
+- feat: implement real-time SSE notifications via NtfyForegroundService
+- feat: add automatic service restart on boot (BOOT_COMPLETED)
+- refactor: remove NtfyPollWorker (WorkManager polling)
+- bump version to 1.21.4 (112)
+
+##version_1.21.3
+- fix: resolve missed notifications by tracking last poll timestamp
+- feat: add timestamp tracking to SettingsManager and NtfyMessage
+- bump version to 1.21.3 (111)
+
 ##version_1.21.2
 - fix: ensure auth token is attached to requests after login
 - fix: use synchronous commit() for JWT token to avoid race conditions

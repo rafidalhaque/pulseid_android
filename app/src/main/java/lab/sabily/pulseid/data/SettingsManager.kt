@@ -17,6 +17,7 @@ class SettingsManager(private val context: Context) {
         private val NTFY_TOPIC = stringPreferencesKey("ntfy_topic")
         private val NTFY_TOKEN = stringPreferencesKey("ntfy_token")
         private val JWT_TOKEN = stringPreferencesKey("jwt_token")
+        private val NTFY_LAST_POLL_TIME = stringPreferencesKey("ntfy_last_poll_time")
         const val DEFAULT_TZ = "Asia/Dhaka"
     }
 
@@ -34,6 +35,9 @@ class SettingsManager(private val context: Context) {
     val jwtToken: Flow<String?> = context.dataStore.data
         .map { preferences -> preferences[JWT_TOKEN] }
 
+    val ntfyLastPollTime: Flow<String?> = context.dataStore.data
+        .map { preferences -> preferences[NTFY_LAST_POLL_TIME] }
+
     suspend fun saveOfficeTz(tz: String) {
         context.dataStore.edit { preferences ->
             preferences[OFFICE_TZ] = tz
@@ -47,6 +51,12 @@ class SettingsManager(private val context: Context) {
             
             if (token != null) preferences[NTFY_TOKEN] = token
             else preferences.remove(NTFY_TOKEN)
+        }
+    }
+
+    suspend fun saveNtfyLastPollTime(time: String) {
+        context.dataStore.edit { preferences ->
+            preferences[NTFY_LAST_POLL_TIME] = time
         }
     }
 
