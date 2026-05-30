@@ -1,3 +1,8 @@
+##version_1.21.5
+- fix: correct ntfy SSE URL and implement robust SSE parsing
+- fix: ensure only 'message' events trigger notifications
+- bump version to 1.21.5 (113)
+
 ##version_1.21.4
 - feat: implement real-time SSE notifications via NtfyForegroundService
 - feat: add automatic service restart on boot (BOOT_COMPLETED)

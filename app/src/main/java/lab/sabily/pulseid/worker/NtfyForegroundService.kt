@@ -78,7 +78,7 @@ class NtfyForegroundService : Service() {
                     continue
                 }
 
-                val url = "https://notify.teamsabily.qzz.io/$topic/json"
+                val url = "https://notify.teamsabily.qzz.io/$topic/sse"
                 val request = Request.Builder()
                     .url(url)
                     .header("Authorization", "Bearer $token")
@@ -101,10 +101,23 @@ class NtfyForegroundService : Service() {
                         }
 
                         val source = response.body?.source() ?: throw IOException("Empty body")
+                        val currentData = StringBuilder()
+                        
                         while (!source.exhausted() && isActive) {
                             val line = source.readUtf8Line()
-                            if (!line.isNullOrBlank()) {
-                                processLine(line)
+                            if (line == null) break
+                            
+                            when {
+                                line.startsWith("data:") -> {
+                                    currentData.append(line.removePrefix("data:").trim())
+                                }
+                                line.isBlank() -> {
+                                    val data = currentData.toString()
+                                    if (data.isNotBlank()) {
+                                        processLine(data)
+                                    }
+                                    currentData.setLength(0)
+                                }
                             }
                         }
                     }
