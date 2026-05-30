@@ -1,3 +1,7 @@
+##version_1.21.1
+- fix: resolve 'unresolved reference scope' compilation error in MainActivity.kt
+- bump version to 1.21.1 (109)
+
 ##version_1.21.0
 - feat: implement Push Notifications via ntfy (self-hosted)
 - feat: implement background polling with NtfyPollWorker (every 15m)

@@ -214,6 +214,7 @@ fun MainAppContent(
     if (!isAuthenticated) return
 
     val isLocked by appLockViewModel.isLocked.collectAsState()
+    val scope = rememberCoroutineScope()
     val updateState by appUpdateViewModel.state.collectAsState()
     var selectedTab by remember { mutableIntStateOf(0) }
     var isAdmin by remember { mutableStateOf(false) }
