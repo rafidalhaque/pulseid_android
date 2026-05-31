@@ -1,3 +1,7 @@
+##version_1.22.6
+- fix: restore internal back navigation from report sub-screens to the Reports menu
+- bump version to 1.22.6 (121)
+
 ##version_1.22.5
 - fix: add missing "Import Employees" and "Server Settings" rows to Admin Panel
 - fix: ensure back navigation from all Admin sub-screens returns to the new Admin Panel

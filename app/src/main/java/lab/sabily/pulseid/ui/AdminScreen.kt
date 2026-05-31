@@ -45,13 +45,13 @@ fun AdminScreen(
     val handleBack = {
         val nextScreen = when (currentSubScreen) {
             AdminSubScreen.IMPORT -> null
-            AdminSubScreen.LOGS -> null
+            AdminSubScreen.LOGS -> AdminSubScreen.REPORTS
             AdminSubScreen.ALL_EMPLOYEES -> null
             AdminSubScreen.HOLIDAYS -> null
             AdminSubScreen.WORK_POLICY -> null
             AdminSubScreen.LEAVE_REQUESTS -> null
-            AdminSubScreen.ATTENDANCE_SHEET -> null
-            AdminSubScreen.AT_A_GLANCE -> null
+            AdminSubScreen.ATTENDANCE_SHEET -> AdminSubScreen.REPORTS
+            AdminSubScreen.AT_A_GLANCE -> AdminSubScreen.REPORTS
             AdminSubScreen.ESP32_MANAGEMENT -> null
             AdminSubScreen.REPORTS -> null
             AdminSubScreen.SETTINGS -> null
