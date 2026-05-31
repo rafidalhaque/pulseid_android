@@ -316,12 +316,15 @@ fun MainAppContent(
                                     }
                                 },
                                 icon = {
-                                    Icon(
-                                        imageVector = if (selected) screen.icon!! else screen.outlinedIcon!!,
-                                        contentDescription = screen.label
-                                    )
+                                    val icon = if (selected) screen.icon else screen.outlinedIcon
+                                    if (icon != null) {
+                                        Icon(
+                                            imageVector = icon,
+                                            contentDescription = screen.label
+                                        )
+                                    }
                                 },
-                                label = { Text(screen.label!!, style = MaterialTheme.typography.labelLarge) }
+                                label = { screen.label?.let { Text(it, style = MaterialTheme.typography.labelLarge) } }
                             )
                         }
                     }

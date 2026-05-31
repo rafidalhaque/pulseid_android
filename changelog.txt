@@ -1,3 +1,8 @@
+##version_1.22.1
+- fix: resolve startup crash caused by initialization order in AppNavigation
+- fix: harden bottom navigation UI against potential null icon/label references
+- bump version to 1.22.1 (116)
+
 ##version_1.22.0
 - feat: refactor bottom navigation to use Jetpack Navigation (4 fixed tabs)
 - feat: reorganize Profile screen with navigation rows for Settings and Admin Panel
