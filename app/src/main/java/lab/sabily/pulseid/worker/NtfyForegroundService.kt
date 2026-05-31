@@ -9,8 +9,6 @@ import android.content.Intent
 import android.net.Uri
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.ProcessLifecycleOwner
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.serialization.json.Json
@@ -28,16 +26,19 @@ class NtfyForegroundService : Service() {
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val json = Json { ignoreUnknownKeys = true }
     private val client = OkHttpClient.Builder()
+        .connectTimeout(10, TimeUnit.SECONDS)
         .readTimeout(0, TimeUnit.MILLISECONDS) // Unlimited for SSE
         .build()
 
     private var currentCall: Call? = null
 
     companion object {
-        private const val NOTIFICATION_ID = 1001
+        private const val TAG = "NtfyService"
+        private const val SERVICE_NOTIFICATION_ID = 8888
         private const val CHANNEL_ID_SERVICE = "pulseid_service_channel"
 
         fun start(context: Context) {
+            android.util.Log.d(TAG, "Starting NtfyForegroundService...")
             val intent = Intent(context, NtfyForegroundService::class.java)
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
                 context.startForegroundService(intent)
@@ -47,6 +48,7 @@ class NtfyForegroundService : Service() {
         }
 
         fun stop(context: Context) {
+            android.util.Log.d(TAG, "Stopping NtfyForegroundService...")
             val intent = Intent(context, NtfyForegroundService::class.java)
             context.stopService(intent)
         }
@@ -56,8 +58,9 @@ class NtfyForegroundService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        android.util.Log.d(TAG, "Service onCreate")
         createServiceNotificationChannel()
-        startForeground(NOTIFICATION_ID, createServiceNotification())
+        startForeground(SERVICE_NOTIFICATION_ID, createServiceNotification())
         startSseConnection()
     }
 
@@ -68,15 +71,28 @@ class NtfyForegroundService : Service() {
     private fun startSseConnection() {
         serviceScope.launch {
             val settingsManager = SettingsManager(applicationContext)
+            
+            // Show test notification to verify channel
+            showNotification(NtfyMessage(
+                id = "test_${System.currentTimeMillis()}",
+                time = System.currentTimeMillis() / 1000,
+                event = "message",
+                title = "Ntfy Service Started",
+                message = "Listening for real-time updates..."
+            ))
+
             while (isActive) {
                 val topic = settingsManager.ntfyTopic.firstOrNull()
                 val token = settingsManager.ntfyToken.firstOrNull()
 
-                if (topic == null || token == null) {
-                    android.util.Log.w("NtfyService", "Credentials missing, retrying in 10s...")
+                if (topic.isNullOrEmpty() || token.isNullOrEmpty()) {
+                    android.util.Log.w(TAG, "Credentials missing: topic=${topic?.take(8)}, token=${token?.take(8)}, retrying in 10s...")
                     delay(10000)
                     continue
                 }
+
+                android.util.Log.d(TAG, "SSE service started for topic: $topic")
+                android.util.Log.d(TAG, "Ntfy token: ${token.take(8)}...")
 
                 val url = "https://notify.teamsabily.qzz.io/$topic/sse"
                 val request = Request.Builder()
@@ -85,27 +101,29 @@ class NtfyForegroundService : Service() {
                     .build()
 
                 try {
-                    android.util.Log.d("NtfyService", "Connecting to SSE: $url")
+                    android.util.Log.d(TAG, "Connecting to SSE: $url")
                     currentCall = client.newCall(request)
                     currentCall?.execute()?.use { response ->
                         if (response.code == 401) {
-                            android.util.Log.e("NtfyService", "401 Unauthorized, stopping service")
+                            android.util.Log.e(TAG, "401 Unauthorized, stopping service")
                             settingsManager.saveNtfyCredentials(null, null)
                             stopSelf()
                             return@launch
                         }
                         
                         if (!response.isSuccessful) {
-                            android.util.Log.e("NtfyService", "SSE failed with code ${response.code}")
+                            android.util.Log.e(TAG, "SSE failed with code ${response.code}")
                             throw IOException("Unexpected code $response")
                         }
 
+                        android.util.Log.d(TAG, "SSE connection opened")
                         val source = response.body?.source() ?: throw IOException("Empty body")
                         val currentData = StringBuilder()
                         
                         while (!source.exhausted() && isActive) {
                             val line = source.readUtf8Line()
                             if (line == null) break
+                            android.util.Log.d(TAG, "SSE line: $line")
                             
                             when {
                                 line.startsWith("data:") -> {
@@ -123,7 +141,7 @@ class NtfyForegroundService : Service() {
                     }
                 } catch (e: Exception) {
                     if (isActive) {
-                        android.util.Log.e("NtfyService", "SSE connection error, reconnecting in 5s...", e)
+                        android.util.Log.e(TAG, "SSE connection error, reconnecting in 5s...", e)
                         delay(5000)
                     }
                 }
@@ -133,22 +151,21 @@ class NtfyForegroundService : Service() {
 
     private fun processLine(line: String) {
         try {
+            android.util.Log.d(TAG, "Parsing SSE data: $line")
             val ntfyMsg = json.decodeFromString<NtfyMessage>(line)
             if (ntfyMsg.event == "message") {
+                android.util.Log.d(TAG, "SSE message received: ${ntfyMsg.title}")
                 showNotification(ntfyMsg)
+            } else {
+                android.util.Log.d(TAG, "SSE event received: ${ntfyMsg.event}")
             }
         } catch (e: Exception) {
-            android.util.Log.e("NtfyService", "Failed to parse line: $line", e)
+            android.util.Log.e(TAG, "Failed to parse line: $line", e)
         }
     }
 
     private fun showNotification(msg: NtfyMessage) {
-        val isAppInForeground = ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
-        if (isAppInForeground) {
-            android.util.Log.d("NtfyService", "App in foreground, skipping notification")
-            return
-        }
-
+        android.util.Log.d(TAG, "Showing notification: ${msg.title}")
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         
         val intent = Intent(applicationContext, MainActivity::class.java).apply {

@@ -1,3 +1,9 @@
+##version_1.21.6
+- fix: ensure SSE notifications show while app is in foreground
+- fix: implement connect timeout for robust SSE connections
+- feat: add extensive logging and test notification for SSE service
+- bump version to 1.21.6 (114)
+
 ##version_1.21.5
 - fix: correct ntfy SSE URL and implement robust SSE parsing
 - fix: ensure only 'message' events trigger notifications

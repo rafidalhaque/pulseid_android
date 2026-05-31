@@ -105,7 +105,10 @@ class MainActivity : FragmentActivity() {
                 val topic = settingsManager.ntfyTopic.firstOrNull()
                 val token = settingsManager.ntfyToken.firstOrNull()
                 if (topic != null && token != null) {
+                    android.util.Log.d("MainActivity", "Starting NtfyForegroundService on app start for topic: $topic")
                     NtfyForegroundService.start(this@MainActivity)
+                } else {
+                    android.util.Log.w("MainActivity", "Ntfy credentials missing on app start")
                 }
             }
         }
