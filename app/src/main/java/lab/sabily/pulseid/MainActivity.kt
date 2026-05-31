@@ -42,19 +42,11 @@ import androidx.core.content.ContextCompat
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import lab.sabily.pulseid.data.AttendanceRecord
-import lab.sabily.pulseid.data.AuthApi
-import lab.sabily.pulseid.data.BleKeyManager
-import lab.sabily.pulseid.data.DateUtils
-import lab.sabily.pulseid.data.NetworkModule
-import lab.sabily.pulseid.data.SecurityManager
-import lab.sabily.pulseid.data.SettingsManager
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import lab.sabily.pulseid.data.*
 import lab.sabily.pulseid.ui.*
-import lab.sabily.pulseid.ui.AdminScreen
-import lab.sabily.pulseid.ui.AttendanceHistoryScreen
-import lab.sabily.pulseid.ui.LeaveScreen
-import lab.sabily.pulseid.ui.ProfileScreen
-import lab.sabily.pulseid.ui.LocalOfficeTz
 import lab.sabily.pulseid.ui.theme.PulseIDTheme
 import lab.sabily.pulseid.ui.onboarding.WelcomeScreen
 import lab.sabily.pulseid.ui.onboarding.ServerSetupScreen
@@ -206,37 +198,38 @@ fun MainAppContent(
     onDeepLinkHandled: () -> Unit,
     onLogout: () -> Unit
 ) {
-    val isAuthenticated by securityManager.isAuthenticated.collectAsState()
-    
-    LaunchedEffect(isAuthenticated) {
-        if (!isAuthenticated) {
-            onLogout()
-        }
-    }
-
+    val isAuthenticated = securityManager.getToken() != null
     if (!isAuthenticated) return
 
-    val isLocked by appLockViewModel.isLocked.collectAsState()
     val scope = rememberCoroutineScope()
     val updateState by appUpdateViewModel.state.collectAsState()
-    var selectedTab by remember { mutableIntStateOf(0) }
+    val navController = rememberNavController()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentDestination = navBackStackEntry?.destination
+    
     var isAdmin by remember { mutableStateOf(false) }
     var isSettingUpPin by remember { mutableStateOf(false) }
     var showUpdateDialog by remember { mutableStateOf(false) }
-    var adminSubScreen by remember { mutableStateOf<AdminSubScreen?>(null) }
 
     LaunchedEffect(deepLinkRoute, isAdmin) {
         if (deepLinkRoute != null) {
             when (deepLinkRoute) {
                 "pulseid://leaves/pending" -> {
                     if (isAdmin) {
-                        selectedTab = 2
-                        adminSubScreen = AdminSubScreen.LEAVE_REQUESTS
+                        navController.navigate(Screen.AdminScreenWrapper.createRoute(AdminSubScreen.LEAVE_REQUESTS.name)) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
                         onDeepLinkHandled()
                     }
                 }
                 "pulseid://leaves/my" -> {
-                    selectedTab = if (isAdmin) 3 else 2
+                    navController.navigate(Screen.Requests.route) {
+                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
                     onDeepLinkHandled()
                 }
             }
@@ -280,11 +273,11 @@ fun MainAppContent(
         )
     }
 
-    BackHandler(enabled = (isAuthenticated && selectedTab != 0) || isSettingUpPin) {
+    BackHandler(enabled = (isAuthenticated && currentDestination?.route != Screen.Home.route) || isSettingUpPin) {
         if (isSettingUpPin) {
             isSettingUpPin = false
         } else {
-            selectedTab = 0
+            navController.popBackStack()
         }
     }
 
@@ -298,7 +291,6 @@ fun MainAppContent(
             }
         } else {
             isAdmin = false
-            selectedTab = 0
             isSettingUpPin = false
         }
     }
@@ -310,38 +302,28 @@ fun MainAppContent(
             bottomBar = {
                 if (isAuthenticated) {
                     NavigationBar {
-                        NavigationBarItem(
-                            selected = selectedTab == 0,
-                            onClick = { selectedTab = 0 },
-                            icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
-                            label = { Text("Home", style = MaterialTheme.typography.labelLarge) }
-                        )
-                        NavigationBarItem(
-                            selected = selectedTab == 1,
-                            onClick = { selectedTab = 1 },
-                            icon = { Icon(Icons.Default.DateRange, contentDescription = "History") },
-                            label = { Text("History", style = MaterialTheme.typography.labelLarge) }
-                        )
-                        if (isAdmin) {
+                        Screen.bottomNavItems.forEach { screen ->
+                            val selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true
                             NavigationBarItem(
-                                selected = selectedTab == 2,
-                                onClick = { selectedTab = 2 },
-                                icon = { Icon(Icons.Default.SupervisorAccount, contentDescription = "Admin") },
-                                label = { Text("Admin", style = MaterialTheme.typography.labelLarge) }
+                                selected = selected,
+                                onClick = {
+                                    navController.navigate(screen.route) {
+                                        popUpTo(navController.graph.findStartDestination().id) {
+                                            saveState = true
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                },
+                                icon = {
+                                    Icon(
+                                        imageVector = if (selected) screen.icon!! else screen.outlinedIcon!!,
+                                        contentDescription = screen.label
+                                    )
+                                },
+                                label = { Text(screen.label!!, style = MaterialTheme.typography.labelLarge) }
                             )
                         }
-                        NavigationBarItem(
-                            selected = if (isAdmin) selectedTab == 3 else selectedTab == 2,
-                            onClick = { selectedTab = if (isAdmin) 3 else 2 },
-                            icon = { Icon(Icons.Default.EventNote, contentDescription = "Leave") },
-                            label = { Text("Leave", style = MaterialTheme.typography.labelLarge) }
-                        )
-                        NavigationBarItem(
-                            selected = if (isAdmin) selectedTab == 4 else selectedTab == 3,
-                            onClick = { selectedTab = if (isAdmin) 4 else 3 },
-                            icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
-                            label = { Text("Profile", style = MaterialTheme.typography.labelLarge) }
-                        )
                     }
                 }
             }
@@ -353,80 +335,69 @@ fun MainAppContent(
                         onBack = { isSettingUpPin = false }
                     )
                 } else {
-                    when (selectedTab) {
-                        0 -> BleAdvertisingScreen(
-                            bleKeyManager = bleKeyManager,
-                            authApi = networkModule.api,
-                            isAdmin = isAdmin,
-                            appLockViewModel = appLockViewModel,
-                            securityManager = securityManager
-                        )
-                        1 -> AttendanceHistoryScreen(
-                            authApi = networkModule.api,
-                            isAdmin = isAdmin
-                        )
-                        2 -> {
-                            if (isAdmin) {
-                                AdminScreen(
-                                    authApi = networkModule.api,
-                                    securityManager = securityManager,
-                                    initialSubScreen = adminSubScreen,
-                                    onSubScreenChange = { adminSubScreen = it }
-                                )
-                            } else {
-                                LeaveScreen(authApi = networkModule.api)
-                            }
+                    NavHost(
+                        navController = navController,
+                        startDestination = Screen.Home.route
+                    ) {
+                        composable(Screen.Home.route) {
+                            BleAdvertisingScreen(
+                                bleKeyManager = bleKeyManager,
+                                authApi = networkModule.api,
+                                isAdmin = isAdmin,
+                                appLockViewModel = appLockViewModel,
+                                securityManager = securityManager
+                            )
                         }
-                        3 -> {
-                            if (isAdmin) {
-                                LeaveScreen(authApi = networkModule.api)
-                            } else {
-                                ProfileScreen(
-                                    securityManager = securityManager,
-                                    authApi = networkModule.api,
-                                    onLogout = {
-                                        securityManager.clearToken()
-                                        bleKeyManager.clearSecret()
-                                        scope.launch {
-                                            settingsManager.clearAll()
-                                        }
-                                    },
-                                    onNavigateToAppLockSetup = { isSettingUpPin = true },
-                                    appUpdateViewModel = appUpdateViewModel
-                                )
-                            }
+                        composable(Screen.Activity.route) {
+                            AttendanceHistoryScreen(
+                                authApi = networkModule.api,
+                                isAdmin = isAdmin
+                            )
                         }
-                        4 -> {
-                            if (isAdmin) {
-                                ProfileScreen(
-                                    securityManager = securityManager,
-                                    authApi = networkModule.api,
-                                    onLogout = {
-                                        securityManager.clearToken()
-                                        bleKeyManager.clearSecret()
-                                        scope.launch {
-                                            settingsManager.clearAll()
-                                        }
-                                    },
-                                    onNavigateToAppLockSetup = { isSettingUpPin = true },
-                                    appUpdateViewModel = appUpdateViewModel
-                                )
-                            }
+                        composable(Screen.Requests.route) {
+                            LeaveScreen(authApi = networkModule.api)
+                        }
+                        composable(Screen.Profile.route) {
+                            ProfileScreen(
+                                authApi = networkModule.api,
+                                isAdmin = isAdmin,
+                                onLogout = onLogout,
+                                onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
+                                onNavigateToNotifications = { /* navController.navigate(Screen.Notifications.route) */ },
+                                onNavigateToAdminPanel = { navController.navigate(Screen.AdminPanel.route) }
+                            )
+                        }
+                        composable(Screen.Settings.route) {
+                            SettingsScreen(
+                                securityManager = securityManager,
+                                appUpdateViewModel = appUpdateViewModel,
+                                onNavigateToAppLockSetup = { isSettingUpPin = true },
+                                onBack = { navController.popBackStack() }
+                            )
+                        }
+                        composable(Screen.AdminPanel.route) {
+                            AdminPanelScreen(
+                                onNavigateToAdminSubScreen = { subScreen ->
+                                    navController.navigate(Screen.AdminScreenWrapper.createRoute(subScreen.name))
+                                },
+                                onBack = { navController.popBackStack() }
+                            )
+                        }
+                        composable(Screen.AdminScreenWrapper.route) { backStackEntry ->
+                            val subScreenName = backStackEntry.arguments?.getString("initialSubScreen")
+                            val initialSubScreen = subScreenName?.let { AdminSubScreen.valueOf(it) }
+                            AdminScreen(
+                                authApi = networkModule.api,
+                                securityManager = securityManager,
+                                initialSubScreen = initialSubScreen
+                            )
                         }
                     }
                 }
             }
         }
-
-        if (isAuthenticated && isLocked) {
-            AppLockScreen(
-                securityManager = securityManager,
-                appLockViewModel = appLockViewModel
-            )
-        }
     }
 }
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BleAdvertisingScreen(

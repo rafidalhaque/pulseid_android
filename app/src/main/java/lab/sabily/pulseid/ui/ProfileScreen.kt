@@ -1,40 +1,38 @@
 package lab.sabily.pulseid.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.SupervisorAccount
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import lab.sabily.pulseid.data.AuthApi
-import lab.sabily.pulseid.data.ProfileResponse
-import lab.sabily.pulseid.data.SecurityManager
-
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
-
-import androidx.biometric.BiometricManager
-import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG
-import androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
-import androidx.biometric.BiometricPrompt
-import androidx.core.content.ContextCompat
-import androidx.fragment.app.FragmentActivity
+import lab.sabily.pulseid.data.AuthApi
+import lab.sabily.pulseid.data.ProfileResponse
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
-    securityManager: SecurityManager,
     authApi: AuthApi,
+    isAdmin: Boolean,
     onLogout: () -> Unit,
-    onNavigateToAppLockSetup: () -> Unit,
-    appUpdateViewModel: AppUpdateViewModel
+    onNavigateToSettings: () -> Unit,
+    onNavigateToNotifications: () -> Unit,
+    onNavigateToAdminPanel: () -> Unit
 ) {
     var profile by remember { mutableStateOf<ProfileResponse?>(null) }
     var isLoading by remember { mutableStateOf(true) }
@@ -75,66 +73,134 @@ fun ProfileScreen(
             state = refreshState,
             modifier = Modifier.fillMaxSize().padding(padding)
         ) {
-            Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
-                if (isLoading) {
+            if (isLoading) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
-                } else if (error != null) {
+                }
+            } else if (error != null) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(text = error!!, color = MaterialTheme.colorScheme.error)
-                } else if (profile != null) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .verticalScroll(rememberScrollState()),
-                        verticalArrangement = Arrangement.Top,
-                        horizontalAlignment = Alignment.Start
-                    ) {
-                        Text(text = "Profile", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(bottom = 24.dp))
-                        
-                        Column(modifier = Modifier.padding(bottom = 16.dp)) {
-                            Text(text = "ID", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text(text = profile!!.employee.id, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-                                IconButton(onClick = {
-                                    clipboardManager.setText(AnnotatedString(profile!!.employee.id))
-                                    scope.launch {
-                                        snackbarHostState.showSnackbar("ID copied to clipboard")
+                }
+            } else if (profile != null) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    item {
+                        Text(
+                            text = "Profile",
+                            style = MaterialTheme.typography.headlineMedium,
+                            modifier = Modifier.padding(bottom = 16.dp)
+                        )
+                    }
+
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                            )
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Text(
+                                    text = profile!!.employee.name,
+                                    style = MaterialTheme.typography.titleLarge
+                                )
+                                Text(
+                                    text = profile!!.employee.designation,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column {
+                                        Text(
+                                            text = "Employee ID",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                        Text(
+                                            text = profile!!.employee.id,
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
                                     }
-                                }) {
-                                    Icon(Icons.Default.ContentCopy, contentDescription = "Copy ID", modifier = Modifier.size(20.dp))
+                                    IconButton(onClick = {
+                                        clipboardManager.setText(AnnotatedString(profile!!.employee.id))
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar("ID copied to clipboard")
+                                        }
+                                    }) {
+                                        Icon(
+                                            Icons.Default.ContentCopy,
+                                            contentDescription = "Copy ID",
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
                                 }
                             }
                         }
+                    }
 
-                        ProfileItem(label = "Name", value = profile!!.employee.name)
-                        ProfileItem(label = "Email", value = profile!!.employee.email)
-                        ProfileItem(label = "Designation", value = profile!!.employee.designation)
-                        ProfileItem(label = "Join Date", value = profile!!.employee.joinDate ?: "N/A")
-                        ProfileItem(label = "ID Number", value = profile!!.employee.idNumber)
+                    item {
+                        ProfileNavigationRow(
+                            icon = Icons.Default.Settings,
+                            label = "Settings",
+                            onClick = onNavigateToSettings
+                        )
+                    }
 
+                    item {
+                        ProfileNavigationRow(
+                            icon = Icons.Default.Notifications,
+                            label = "Notifications",
+                            onClick = onNavigateToNotifications
+                        )
+                    }
+
+                    if (isAdmin) {
+                        item {
+                            ProfileNavigationRow(
+                                icon = Icons.Default.SupervisorAccount,
+                                label = "Admin Panel",
+                                onClick = onNavigateToAdminPanel
+                            )
+                        }
+                    }
+
+                    item {
                         HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
-                        Text(text = "App Lock", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-                        
-                        AppLockSettings(securityManager, onNavigateToAppLockSetup)
+                    }
 
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
-                        Text(text = "App Updates", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-                        
-                        AppUpdateSettings(appUpdateViewModel)
+                    item {
+                        ProfileInfoItem(label = "Email", value = profile!!.employee.email)
+                    }
+                    item {
+                        ProfileInfoItem(label = "Join Date", value = profile!!.employee.joinDate ?: "N/A")
+                    }
+                    item {
+                        ProfileInfoItem(label = "ID Number", value = profile!!.employee.idNumber)
+                    }
 
-                        Spacer(modifier = Modifier.weight(1f))
-
+                    item {
+                        Spacer(modifier = Modifier.height(24.dp))
                         Button(
                             onClick = onLogout,
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer, contentColor = MaterialTheme.colorScheme.onErrorContainer)
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer,
+                                contentColor = MaterialTheme.colorScheme.onErrorContainer
+                            )
                         ) {
                             Text("Logout")
                         }
+                    }
 
+                    item {
                         val context = androidx.compose.ui.platform.LocalContext.current
                         val versionText = remember(context) {
                             try {
@@ -144,9 +210,8 @@ fun ProfileScreen(
                                 "Version Unknown"
                             }
                         }
-
                         Box(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
@@ -163,216 +228,56 @@ fun ProfileScreen(
 }
 
 @Composable
-fun AppUpdateSettings(viewModel: AppUpdateViewModel) {
-    val state by viewModel.state.collectAsState()
-    val context = androidx.compose.ui.platform.LocalContext.current
-
-    val currentVersion = remember(context) {
-        try {
-            val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-                "Version ${packageInfo.versionName} (${packageInfo.longVersionCode})"
-            } else {
-                @Suppress("DEPRECATION")
-                "Version ${packageInfo.versionName} (${packageInfo.versionCode})"
-            }
-        } catch (e: Exception) {
-            "Version Unknown"
-        }
-    }
-
-    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-        Text(text = currentVersion, style = MaterialTheme.typography.bodyMedium)
-        
-        Spacer(modifier = Modifier.height(8.dp))
-
-        when (state) {
-            is AppUpdateState.Idle -> {
-                Button(onClick = { viewModel.checkForUpdates() }) {
-                    Text("Check for Updates")
-                }
-            }
-            is AppUpdateState.Checking -> {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text("Checking for updates...")
-                }
-            }
-            is AppUpdateState.UpdateAvailable -> {
-                val info = (state as AppUpdateState.UpdateAvailable).versionInfo
-                Column {
-                    Text("Update available: ${info.versionName}", fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Button(onClick = { viewModel.startDownload(info) }) {
-                        Text("Download & Install")
-                    }
-                }
-            }
-            is AppUpdateState.UpToDate -> {
-                Text("You're on the latest version", color = MaterialTheme.colorScheme.primary)
-                Spacer(modifier = Modifier.height(8.dp))
-                TextButton(onClick = { viewModel.checkForUpdates() }) {
-                    Text("Check Again")
-                }
-            }
-            is AppUpdateState.Downloading -> {
-                val progress = (state as AppUpdateState.Downloading).progress
-                Column {
-                    Text("Downloading... ${(progress * 100).toInt()}%")
-                    LinearProgressIndicator(
-                        progress = { progress },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-            }
-            is AppUpdateState.Error -> {
-                val message = (state as AppUpdateState.Error).message
-                Column {
-                    Text("Error: $message", color = MaterialTheme.colorScheme.error)
-                    Button(onClick = { viewModel.checkForUpdates() }) {
-                        Text("Retry")
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun ProfileItem(label: String, value: String) {
-    Column(modifier = Modifier.padding(bottom = 16.dp)) {
-        Text(text = label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
-        Text(text = value, style = MaterialTheme.typography.bodyLarge)
-    }
-}
-
-@Composable
-fun AppLockSettings(securityManager: SecurityManager, onNavigateToAppLockSetup: () -> Unit) {
-    val context = androidx.compose.ui.platform.LocalContext.current
-    var isAppLockEnabled by remember(securityManager.isAppLockEnabled()) { mutableStateOf(securityManager.isAppLockEnabled()) }
-    var isBiometricEnabled by remember(securityManager.isBiometricEnabled()) { mutableStateOf(securityManager.isBiometricEnabled()) }
-    
-    val biometricManager = remember { BiometricManager.from(context) }
-    val canAuthenticate = remember {
-        biometricManager.canAuthenticate(BIOMETRIC_STRONG or DEVICE_CREDENTIAL) == BiometricManager.BIOMETRIC_SUCCESS
-    }
-
-    Column {
+fun ProfileNavigationRow(
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surface
+    ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Enable App Lock")
-            Switch(
-                checked = isAppLockEnabled,
-                onCheckedChange = { enabled ->
-                    if (enabled && securityManager.getAppLockPin() == null) {
-                        onNavigateToAppLockSetup()
-                    } else if (!enabled) {
-                        securityManager.clearAppLock()
-                        isAppLockEnabled = false
-                        isBiometricEnabled = false
-                    } else {
-                        securityManager.setAppLockEnabled(enabled)
-                        isAppLockEnabled = enabled
-                    }
-                }
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.weight(1f)
+            )
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp)
             )
         }
+    }
+}
 
-        if (isAppLockEnabled && securityManager.getAppLockPin() != null) {
-            TextButton(onClick = onNavigateToAppLockSetup) {
-                Text("Change PIN")
-            }
-
-            if (canAuthenticate) {
-                val activity = context as FragmentActivity
-                val executor = remember { ContextCompat.getMainExecutor(context) }
-                val biometricPrompt = remember {
-                    BiometricPrompt(activity, executor, object : BiometricPrompt.AuthenticationCallback() {
-                        override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                            super.onAuthenticationSucceeded(result)
-                            securityManager.setBiometricEnabled(true)
-                            isBiometricEnabled = true
-                        }
-                    })
-                }
-
-                val promptInfo = BiometricPrompt.PromptInfo.Builder()
-                    .setTitle("Enable Biometric")
-                    .setSubtitle("Confirm your identity to enable biometric unlock")
-                    .setNegativeButtonText("Cancel")
-                    .build()
-
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text("Biometric Unlock")
-                    Switch(
-                        checked = isBiometricEnabled,
-                        onCheckedChange = { enabled ->
-                            if (enabled) {
-                                biometricPrompt.authenticate(promptInfo)
-                            } else {
-                                securityManager.setBiometricEnabled(false)
-                                isBiometricEnabled = false
-                            }
-                        }
-                    )
-                }
-            } else {
-                Text(
-                    text = "Biometric unlock is not available on this device due to restrictions",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(vertical = 8.dp)
-                )
-            }
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-            val intervalOptions = listOf(
-                "Immediately" to 0L,
-                "15 seconds" to 15000L,
-                "30 seconds" to 30000L,
-                "1 minute" to 60000L,
-                "5 minutes" to 300000L
-            )
-
-            var expanded by remember { mutableStateOf(false) }
-            val currentInterval = securityManager.getAppLockInterval()
-            val selectedOption = intervalOptions.find { it.second == currentInterval }?.first ?: "30 seconds"
-
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text("Auto Lock Interval")
-                Box {
-                    TextButton(onClick = { expanded = true }) {
-                        Text(selectedOption)
-                    }
-                    DropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false }
-                    ) {
-                        intervalOptions.forEach { (label, value) ->
-                            DropdownMenuItem(
-                                text = { Text(label) },
-                                onClick = {
-                                    securityManager.saveAppLockInterval(value)
-                                    expanded = false
-                                }
-                            )
-                        }
-                    }
-                }
-            }
-        }
+@Composable
+fun ProfileInfoItem(label: String, value: String) {
+    Column(modifier = Modifier.padding(vertical = 8.dp)) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyLarge
+        )
     }
 }

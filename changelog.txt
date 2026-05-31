@@ -1,3 +1,10 @@
+##version_1.22.0
+- feat: refactor bottom navigation to use Jetpack Navigation (4 fixed tabs)
+- feat: reorganize Profile screen with navigation rows for Settings and Admin Panel
+- feat: extract App Lock and App Update settings to a new SettingsScreen
+- feat: add AdminPanelScreen menu for streamlined admin access
+- bump version to 1.22.0 (115)
+
 ##version_1.21.6
 - fix: ensure SSE notifications show while app is in foreground
 - fix: implement connect timeout for robust SSE connections
