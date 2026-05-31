@@ -17,18 +17,14 @@ import androidx.compose.ui.text.AnnotatedString
 import lab.sabily.pulseid.data.AuthApi
 import lab.sabily.pulseid.data.QrUtils
 import lab.sabily.pulseid.data.SecurityManager
-import lab.sabily.pulseid.ui.WorkPolicyListScreen
-import lab.sabily.pulseid.ui.AddWorkPolicyScreen
-import lab.sabily.pulseid.ui.EditWorkPolicyScreen
-import lab.sabily.pulseid.ui.HolidaysScreen
-import lab.sabily.pulseid.ui.LeaveManagementScreen
 
 @Composable
 fun AdminScreen(
     authApi: AuthApi,
     securityManager: SecurityManager,
     initialSubScreen: AdminSubScreen? = null,
-    onSubScreenChange: (AdminSubScreen?) -> Unit = {}
+    onSubScreenChange: (AdminSubScreen?) -> Unit = {},
+    onBack: () -> Unit = {}
 ) {
     var currentSubScreen by remember { mutableStateOf<AdminSubScreen?>(initialSubScreen) }
     
@@ -46,8 +42,8 @@ fun AdminScreen(
     var employeeToEdit by remember { mutableStateOf<lab.sabily.pulseid.data.Employee?>(null) }
     var policyToEdit by remember { mutableStateOf<lab.sabily.pulseid.data.WorkPolicy?>(null) }
 
-    BackHandler(enabled = currentSubScreen != null) {
-        currentSubScreen = when (currentSubScreen) {
+    val handleBack = {
+        val nextScreen = when (currentSubScreen) {
             AdminSubScreen.IMPORT -> AdminSubScreen.SETTINGS
             AdminSubScreen.LOGS -> AdminSubScreen.REPORTS
             AdminSubScreen.ALL_EMPLOYEES -> null
@@ -69,44 +65,54 @@ fun AdminScreen(
             AdminSubScreen.EDIT_EMPLOYEE -> AdminSubScreen.EMPLOYEE_DETAIL
             null -> null
         }
+        
+        if (nextScreen == null) {
+            onBack()
+        } else {
+            currentSubScreen = nextScreen
+        }
+    }
+
+    BackHandler(enabled = true) {
+        handleBack()
     }
 
     when (currentSubScreen) {
         AdminSubScreen.ESP32_MANAGEMENT -> {
             Esp32ManagementScreen(
                 authApi = authApi,
-                onBack = { currentSubScreen = null },
+                onBack = { handleBack() },
                 onNavigateToNvsGenerator = { currentSubScreen = AdminSubScreen.NVS_GENERATOR }
             )
         }
         AdminSubScreen.AT_A_GLANCE -> {
             AtAGlanceScreen(
                 authApi = authApi,
-                onBack = { currentSubScreen = null }
+                onBack = { handleBack() }
             )
         }
         AdminSubScreen.NVS_GENERATOR -> {
             NvsGeneratorScreen(
                 authApi = authApi,
-                onBack = { currentSubScreen = AdminSubScreen.ESP32_MANAGEMENT }
+                onBack = { handleBack() }
             )
         }
         AdminSubScreen.ATTENDANCE_SHEET -> {
             AttendanceSheetScreen(
                 authApi = authApi,
-                onBack = { currentSubScreen = null }
+                onBack = { handleBack() }
             )
         }
         AdminSubScreen.LEAVE_REQUESTS -> {
             LeaveManagementScreen(
                 authApi = authApi,
-                onBack = { currentSubScreen = null }
+                onBack = { handleBack() }
             )
         }
         AdminSubScreen.WORK_POLICY -> {
             Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
                 IconButton(
-                    onClick = { currentSubScreen = null },
+                    onClick = { handleBack() },
                     modifier = Modifier.padding(8.dp)
                 ) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -125,7 +131,7 @@ fun AdminScreen(
             AddWorkPolicyScreen(
                 authApi = authApi,
                 onSuccess = { currentSubScreen = AdminSubScreen.WORK_POLICY },
-                onBack = { currentSubScreen = AdminSubScreen.WORK_POLICY }
+                onBack = { handleBack() }
             )
         }
         AdminSubScreen.EDIT_WORK_POLICY -> {
@@ -134,14 +140,14 @@ fun AdminScreen(
                     authApi = authApi,
                     policy = policy,
                     onSuccess = { currentSubScreen = AdminSubScreen.WORK_POLICY },
-                    onBack = { currentSubScreen = AdminSubScreen.WORK_POLICY }
+                    onBack = { handleBack() }
                 )
             }
         }
         AdminSubScreen.HOLIDAYS -> {
             Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
                 IconButton(
-                    onClick = { currentSubScreen = null },
+                    onClick = { handleBack() },
                     modifier = Modifier.padding(8.dp)
                 ) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -156,13 +162,13 @@ fun AdminScreen(
             AddHolidayScreen(
                 authApi = authApi,
                 onSuccess = { currentSubScreen = AdminSubScreen.HOLIDAYS },
-                onBack = { currentSubScreen = AdminSubScreen.HOLIDAYS }
+                onBack = { handleBack() }
             )
         }
         AdminSubScreen.IMPORT -> {
             Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
                 IconButton(
-                    onClick = { currentSubScreen = null },
+                    onClick = { handleBack() },
                     modifier = Modifier.padding(8.dp)
                 ) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -173,7 +179,7 @@ fun AdminScreen(
         AdminSubScreen.LOGS -> {
             Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
                 IconButton(
-                    onClick = { currentSubScreen = null },
+                    onClick = { handleBack() },
                     modifier = Modifier.padding(8.dp)
                 ) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -184,41 +190,32 @@ fun AdminScreen(
         AdminSubScreen.ALL_EMPLOYEES -> {
             Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
                 IconButton(
-                    onClick = { currentSubScreen = null },
+                    onClick = { handleBack() },
                     modifier = Modifier.padding(8.dp)
                 ) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                 }
                 AllEmployeesScreen(
                     authApi = authApi,
-                    onEmployeeClick = { id ->
-                        selectedEmployeeId = id
+                    onEmployeeClick = { employeeId ->
+                        selectedEmployeeId = employeeId
                         currentSubScreen = AdminSubScreen.EMPLOYEE_DETAIL
                     },
-                    onAddClick = {
-                        currentSubScreen = AdminSubScreen.ADD_EMPLOYEE
-                    }
+                    onAddEmployeeClick = { currentSubScreen = AdminSubScreen.ADD_EMPLOYEE }
                 )
             }
         }
         AdminSubScreen.EMPLOYEE_DETAIL -> {
-            Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
-                IconButton(
-                    onClick = { currentSubScreen = AdminSubScreen.ALL_EMPLOYEES },
-                    modifier = Modifier.padding(8.dp)
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                }
-                selectedEmployeeId?.let {
-                    MemberDetailScreen(
-                        authApi = authApi,
-                        employeeId = it,
-                        onEditClick = { emp ->
-                            employeeToEdit = emp
-                            currentSubScreen = AdminSubScreen.EDIT_EMPLOYEE
-                        }
-                    )
-                }
+            selectedEmployeeId?.let { employeeId ->
+                MemberDetailScreen(
+                    authApi = authApi,
+                    employeeId = employeeId,
+                    onBack = { handleBack() },
+                    onEditClick = { employee ->
+                        employeeToEdit = employee
+                        currentSubScreen = AdminSubScreen.EDIT_EMPLOYEE
+                    }
+                )
             }
         }
         AdminSubScreen.ADD_EMPLOYEE -> {
@@ -227,18 +224,18 @@ fun AdminScreen(
                 onSuccess = {
                     currentSubScreen = AdminSubScreen.ALL_EMPLOYEES
                 },
-                onBack = { currentSubScreen = AdminSubScreen.ALL_EMPLOYEES }
+                onBack = { handleBack() }
             )
         }
         AdminSubScreen.EDIT_EMPLOYEE -> {
-            employeeToEdit?.let { emp ->
+            employeeToEdit?.let { employee ->
                 EditEmployeeScreen(
                     authApi = authApi,
-                    employee = emp,
+                    employee = employee,
                     onSuccess = {
                         currentSubScreen = AdminSubScreen.ALL_EMPLOYEES
                     },
-                    onBack = { currentSubScreen = AdminSubScreen.EMPLOYEE_DETAIL }
+                    onBack = { handleBack() }
                 )
             }
         }
@@ -255,7 +252,7 @@ fun AdminScreen(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(onClick = { currentSubScreen = null }) {
+                    IconButton(onClick = { handleBack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                     Text("Reports", style = MaterialTheme.typography.titleLarge)
@@ -298,7 +295,7 @@ fun AdminScreen(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(onClick = { currentSubScreen = null }) {
+                    IconButton(onClick = { handleBack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                     Text("Settings", style = MaterialTheme.typography.titleLarge)
@@ -350,7 +347,7 @@ fun AdminScreen(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(onClick = { currentSubScreen = AdminSubScreen.SETTINGS }) {
+                    IconButton(onClick = { handleBack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                     Text("Server URL", style = MaterialTheme.typography.titleLarge)
@@ -405,49 +402,10 @@ fun AdminScreen(
             }
         }
         null -> {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .statusBarsPadding()
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically)
-            ) {
-                Button(
-                    onClick = { currentSubScreen = AdminSubScreen.ALL_EMPLOYEES },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("All Employees")
-                }
-
-                Button(
-                    onClick = { currentSubScreen = AdminSubScreen.LEAVE_REQUESTS },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Leave Requests")
-                }
-
-                Button(
-                    onClick = { currentSubScreen = AdminSubScreen.REPORTS },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Reports")
-                }
-
-                Button(
-                    onClick = { currentSubScreen = AdminSubScreen.SETTINGS },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Settings")
-                }
-
-                Button(
-                    onClick = { currentSubScreen = AdminSubScreen.ESP32_MANAGEMENT },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("ESP32 Management")
-                }
+            LaunchedEffect(Unit) {
+                onBack()
             }
+            Box(modifier = Modifier.fillMaxSize())
         }
     }
 }

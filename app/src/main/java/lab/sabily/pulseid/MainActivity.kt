@@ -303,7 +303,12 @@ fun MainAppContent(
                 if (isAuthenticated) {
                     NavigationBar {
                         Screen.bottomNavItems.forEach { screen ->
-                            val selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true
+                            val selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true ||
+                                (screen == Screen.Profile && (
+                                    currentDestination?.route == Screen.AdminPanel.route ||
+                                    currentDestination?.route == Screen.Settings.route ||
+                                    currentDestination?.route?.startsWith("admin_screen/") == true
+                                ))
                             NavigationBarItem(
                                 selected = selected,
                                 onClick = {
@@ -392,7 +397,8 @@ fun MainAppContent(
                             AdminScreen(
                                 authApi = networkModule.api,
                                 securityManager = securityManager,
-                                initialSubScreen = initialSubScreen
+                                initialSubScreen = initialSubScreen,
+                                onBack = { navController.popBackStack() }
                             )
                         }
                     }

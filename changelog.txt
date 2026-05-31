@@ -1,3 +1,9 @@
+##version_1.22.2
+- fix: ensure Admin sub-screens correctly navigate back to Admin Panel instead of old menu
+- fix: centralized back navigation logic in AdminScreen for consistency
+- fix: keep Profile tab highlighted when in Settings or Admin Panel
+- bump version to 1.22.2 (117)
+
 ##version_1.22.1
 - fix: resolve startup crash caused by initialization order in AppNavigation
 - fix: harden bottom navigation UI against potential null icon/label references
