@@ -1,3 +1,7 @@
+##version_1.22.4
+- docs: update GEMINI.md with mandatory pre-push checklist
+- bump version to 1.22.4 (119)
+
 ##version_1.22.3
 - fix: resolve compilation errors in AdminScreen after navigation refactor
 - fix: restore missing back navigation button in Member Detail screen
