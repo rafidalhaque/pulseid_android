@@ -1,3 +1,8 @@
+##version_1.22.3
+- fix: resolve compilation errors in AdminScreen after navigation refactor
+- fix: restore missing back navigation button in Member Detail screen
+- bump version to 1.22.3 (118)
+
 ##version_1.22.2
 - fix: ensure Admin sub-screens correctly navigate back to Admin Panel instead of old menu
 - fix: centralized back navigation logic in AdminScreen for consistency

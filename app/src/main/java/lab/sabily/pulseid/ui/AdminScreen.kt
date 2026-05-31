@@ -201,21 +201,28 @@ fun AdminScreen(
                         selectedEmployeeId = employeeId
                         currentSubScreen = AdminSubScreen.EMPLOYEE_DETAIL
                     },
-                    onAddEmployeeClick = { currentSubScreen = AdminSubScreen.ADD_EMPLOYEE }
+                    onAddClick = { currentSubScreen = AdminSubScreen.ADD_EMPLOYEE }
                 )
             }
         }
         AdminSubScreen.EMPLOYEE_DETAIL -> {
-            selectedEmployeeId?.let { employeeId ->
-                MemberDetailScreen(
-                    authApi = authApi,
-                    employeeId = employeeId,
-                    onBack = { handleBack() },
-                    onEditClick = { employee ->
-                        employeeToEdit = employee
-                        currentSubScreen = AdminSubScreen.EDIT_EMPLOYEE
-                    }
-                )
+            Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
+                IconButton(
+                    onClick = { handleBack() },
+                    modifier = Modifier.padding(8.dp)
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                }
+                selectedEmployeeId?.let { employeeId ->
+                    MemberDetailScreen(
+                        authApi = authApi,
+                        employeeId = employeeId,
+                        onEditClick = { employee ->
+                            employeeToEdit = employee
+                            currentSubScreen = AdminSubScreen.EDIT_EMPLOYEE
+                        }
+                    )
+                }
             }
         }
         AdminSubScreen.ADD_EMPLOYEE -> {
