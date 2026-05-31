@@ -220,6 +220,10 @@ fun AdminScreen(
                         onEditClick = { employee ->
                             employeeToEdit = employee
                             currentSubScreen = AdminSubScreen.EDIT_EMPLOYEE
+                        },
+                        onDeleteSuccess = {
+                            currentSubScreen = AdminSubScreen.ALL_EMPLOYEES
+                            selectedEmployeeId = null
                         }
                     )
                 }

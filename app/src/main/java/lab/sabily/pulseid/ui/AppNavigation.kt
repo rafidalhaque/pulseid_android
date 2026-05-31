@@ -42,6 +42,7 @@ sealed class Screen(
         outlinedIcon = Icons.Outlined.Person
     )
 
+    object EditProfile : Screen("edit_profile")
     object Settings : Screen("settings")
     object Notifications : Screen("notifications")
     object AdminPanel : Screen("admin_panel")

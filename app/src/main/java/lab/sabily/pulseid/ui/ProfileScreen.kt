@@ -7,6 +7,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SupervisorAccount
@@ -32,7 +33,8 @@ fun ProfileScreen(
     onLogout: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToNotifications: () -> Unit,
-    onNavigateToAdminPanel: () -> Unit
+    onNavigateToAdminPanel: () -> Unit,
+    onNavigateToEditProfile: () -> Unit
 ) {
     var profile by remember { mutableStateOf<ProfileResponse?>(null) }
     var isLoading by remember { mutableStateOf(true) }
@@ -144,6 +146,14 @@ fun ProfileScreen(
                                 }
                             }
                         }
+                    }
+
+                    item {
+                        ProfileNavigationRow(
+                            icon = Icons.Default.Edit,
+                            label = "Edit Profile",
+                            onClick = onNavigateToEditProfile
+                        )
                     }
 
                     item {

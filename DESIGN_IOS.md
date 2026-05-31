@@ -50,6 +50,7 @@ This is the most critical feature. The iOS app must generate the exact same dail
         *   `GET /api/employee/key` - Fetch master secret for BLE.
     *   **Profile / Members**:
         *   `GET /api/profile` - Fetch current user profile.
+        *   `PATCH /api/employee/me/edit` - Self-edit profile (email/password).
         *   `GET /api/profile?all=true` - Fetch all members (Admin).
         *   `GET /api/profile?uuid={uuid}` - Fetch specific member details (Admin).
     *   **Attendance**:
@@ -64,6 +65,7 @@ This is the most critical feature. The iOS app must generate the exact same dail
     *   **Employee Management (Admin)**:
         *   `POST /api/employee/add` - Add new employee.
         *   `PATCH /api/employee/edit` - Edit employee details.
+        *   `DELETE /api/employee/delete` - Delete an employee.
         *   `POST /api/employee/import` (Multipart) - Import employees via CSV.
     *   **Settings (Admin)**:
         *   `GET /api/settings/holidays` - Fetch holidays.

@@ -34,7 +34,8 @@ import java.util.*
 fun MemberDetailScreen(
     authApi: AuthApi,
     employeeId: String,
-    onEditClick: (Employee) -> Unit
+    onEditClick: (Employee) -> Unit,
+    onDeleteSuccess: () -> Unit
 ) {
     var employee by remember { mutableStateOf<Employee?>(null) }
     var history by remember { mutableStateOf<List<AttendanceRecord>>(emptyList()) }
@@ -45,6 +46,9 @@ fun MemberDetailScreen(
     var isRefreshing by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
+    var showDeleteConfirmDialog by remember { mutableStateOf(false) }
+    var isDeleting by remember { mutableStateOf(false) }
+
     val officeTz = LocalOfficeTz.current
     val timeZone = remember(officeTz) { TimeZone.getTimeZone(officeTz) }
     val dateFormat = remember(timeZone) { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).apply { this.timeZone = timeZone } }
@@ -54,6 +58,45 @@ fun MemberDetailScreen(
     }
     val timeFormat = remember(timeZone) { 
         SimpleDateFormat("hh:mm a", Locale.getDefault()).apply { this.timeZone = timeZone }
+    }
+
+    if (showDeleteConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmDialog = false },
+            title = { Text("Delete Employee") },
+            text = { Text("Are you sure you want to delete ${employee?.name}? This cannot be undone.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteConfirmDialog = false
+                        isDeleting = true
+                        scope.launch {
+                            try {
+                                val response = authApi.deleteEmployee(lab.sabily.pulseid.data.DeleteEmployeeRequest(employeeId))
+                                if (response.success) {
+                                    snackbarHostState.showSnackbar(response.message ?: "Employee deleted successfully")
+                                    onDeleteSuccess()
+                                } else {
+                                    snackbarHostState.showSnackbar(response.message ?: "Failed to delete employee")
+                                }
+                            } catch (e: Exception) {
+                                snackbarHostState.showSnackbar(e.message ?: "An error occurred during deletion")
+                            } finally {
+                                isDeleting = false
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirmDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     val fetchDetail = suspend {
@@ -118,15 +161,39 @@ fun MemberDetailScreen(
                     }
 
                     item {
-                        Button(
-                            onClick = { onEditClick(employee!!) },
+                        Row(
                             modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                            )
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Text("Edit Employee")
+                            Button(
+                                onClick = { onEditClick(employee!!) },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                            ) {
+                                Text("Edit Employee")
+                            }
+                            Button(
+                                onClick = { showDeleteConfirmDialog = true },
+                                modifier = Modifier.weight(1f),
+                                enabled = !isDeleting,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                                    contentColor = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                            ) {
+                                if (isDeleting) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(20.dp),
+                                        strokeWidth = 2.dp,
+                                        color = MaterialTheme.colorScheme.onErrorContainer
+                                    )
+                                } else {
+                                    Text("Delete")
+                                }
+                            }
                         }
                     }
 

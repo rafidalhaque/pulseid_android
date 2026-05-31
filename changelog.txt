@@ -1,3 +1,9 @@
+##version_1.22.8
+- feat: implement "Edit Profile" for regular employees (self-edit email and password)
+- feat: implement admin-only "Delete Employee" in Member Detail screen
+- feat: add confirmation dialog and success feedback for destructive actions
+- bump version to 1.22.8 (123)
+
 ##version_1.22.7
 - docs: sync DESIGN_IOS.md with latest Android navigation and features
 - bump version to 1.22.7 (122)

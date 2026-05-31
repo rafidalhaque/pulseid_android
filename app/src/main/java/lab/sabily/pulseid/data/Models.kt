@@ -130,6 +130,17 @@ data class EditEmployeeRequest(
 )
 
 @Serializable
+data class EditProfileRequest(
+    val email: String? = null,
+    val password: String? = null
+)
+
+@Serializable
+data class DeleteEmployeeRequest(
+    val uuid: String
+)
+
+@Serializable
 data class AddHolidayRequest(
     val date: String,
     @SerialName("end_date") val endDate: String? = null,

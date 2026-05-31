@@ -56,6 +56,12 @@ interface AuthApi {
     @retrofit2.http.PATCH("/api/employee/edit")
     suspend fun editEmployee(@Body request: EditEmployeeRequest): GenericResponse
 
+    @retrofit2.http.PATCH("/api/employee/me/edit")
+    suspend fun editProfile(@Body request: EditProfileRequest): GenericResponse
+
+    @retrofit2.http.HTTP(method = "DELETE", path = "/api/employee/delete", hasBody = true)
+    suspend fun deleteEmployee(@Body request: DeleteEmployeeRequest): GenericResponse
+
     @Multipart
     @POST("/api/employee/import")
     suspend fun importEmployees(@Part file: MultipartBody.Part): ImportEmployeeResponse

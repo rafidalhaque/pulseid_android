@@ -372,8 +372,10 @@ fun MainAppContent(
                                 onLogout = onLogout,
                                 onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
                                 onNavigateToNotifications = { /* navController.navigate(Screen.Notifications.route) */ },
-                                onNavigateToAdminPanel = { navController.navigate(Screen.AdminPanel.route) }
-                            )
+                                onNavigateToAdminPanel = { navController.navigate(Screen.AdminPanel.route) },
+                                onNavigateToEditProfile = { navController.navigate(Screen.EditProfile.route) }
+                                )
+
                         }
                         composable(Screen.Settings.route) {
                             SettingsScreen(
@@ -383,6 +385,14 @@ fun MainAppContent(
                                 onBack = { navController.popBackStack() }
                             )
                         }
+                        composable(Screen.EditProfile.route) {
+                            EditProfileScreen(
+                                authApi = networkModule.api,
+                                onSuccess = { navController.popBackStack() },
+                                onBack = { navController.popBackStack() }
+                            )
+                        }
+
                         composable(Screen.AdminPanel.route) {
                             AdminPanelScreen(
                                 onNavigateToAdminSubScreen = { subScreen ->
