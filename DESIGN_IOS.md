@@ -76,10 +76,12 @@ This is the most critical feature. The iOS app must generate the exact same dail
         *   `POST /api/admin/esp32/command` - Send device command.
         *   `POST /api/iot/esp32/nvs` - Generate NVS configuration.
 
-### 3.4. Push Notifications via ntfy (`NtfyPollWorker`)
-iOS implementation should use **Background Tasks** framework to poll ntfy periodically (every 15-30 mins).
+### 3.4. Push Notifications via ntfy (`NtfyService`)
+iOS should implement both real-time notifications (SSE) while the app is active and periodic polling for background updates.
 *   **ntfy Server**: `https://notify.teamsabily.qzz.io`
 *   **Credentials**: Stored in Keychain (`ntfy_topic` and `ntfy_token`).
+*   **Real-time (Active)**: Use **Server-Sent Events (SSE)** to receive instant notifications when the app is in the foreground.
+*   **Background (Inactive)**: Use **Background Tasks** framework to poll ntfy periodically (every 15-30 mins).
 *   **Polling Endpoint**: `GET /{ntfy_topic}/json?poll=1&since=15m` with `Authorization: Bearer {ntfy_token}`.
 *   **Logic**:
     *   Parse NDJSON response.
@@ -88,13 +90,13 @@ iOS implementation should use **Background Tasks** framework to poll ntfy period
     *   Set notification category/action to handle the `click` URL.
 *   **Deep Linking**:
     *   Support `pulseid://` scheme.
-    *   `pulseid://leaves/pending` -> Admin Leave Requests.
-    *   `pulseid://leaves/my` -> My Leave Requests.
-*   **Trigger**: Schedule background task on login/app launch, cancel on logout.
+    *   `pulseid://leaves/pending` -> Admin Panel -> Leave Management.
+    *   `pulseid://leaves/my` -> Requests.
+*   **Trigger**: Start SSE connection on login/app launch, schedule background task, cancel on logout.
 
 ### 3.5. App Update Checking (`AppUpdateService`)
 *   **Endpoint**: `GET /api/app/version?platform=ios` (Change default `android` to `ios`).
-*   **Flow**: On app launch (in the main view's `onAppear` or via a dedicated view model), the app checks the latest available version against the current installed version.
+*   **Flow**: On app launch or manual check in **Settings**, the app checks the latest available version.
 *   **UI**: If a newer version is available, present a standard SwiftUI `Alert` prompting the user to update ("Update Available"), with actions to "Update Now" (redirects to App Store/Download URL) or "Later".
 
 ### 3.6. QR Utilities
@@ -102,44 +104,51 @@ iOS implementation should use **Background Tasks** framework to poll ntfy period
 *   **Generation**: Use **Core Image** (`CIFilter(name: "CIQRCodeGenerator")`) to generate QR code images from employee UUIDs (Member Details) and Server URL (Admin Settings).
 
 ## 4. Features & UI Screens
-The UI should map 1-to-1 with the Android Compose screens, utilizing SwiftUI navigation (`NavigationStack`, `TabView`).
+The UI should map 1-to-1 with the Android architecture, utilizing SwiftUI navigation (`NavigationStack`, `TabView`).
 
 ### 4.1. Common/Employee Features
 *   **Onboarding**: 
     *   **Welcome**: Brief introduction and "Get Started" call to action.
-    *   **Server Setup**: Manual entry of server URL or QR code scan for quick configuration.
+    *   **Server Setup**: Manual entry of server URL or QR code scan.
     *   **Login (Initial & Re-auth)**: 
-        *   Used for both first-time setup and subsequent logins after session expiration.
-        *   **Employee ID Scanning**: Supports filling the ID via QR code scan.
-        *   **Smart Pre-fill**: If an Employee ID is already stored (e.g., during re-auth), it is automatically pre-filled and set to **Read-Only** to prevent accidental edits.
-        *   **Clear Data**: If the ID is pre-filled, a "Clear Data" option is provided to wipe the stored ID and Server URL, allowing the user to reset the entire setup.
-        *   **Back Navigation**: Allows returning to the Server Setup screen.
-*   **Main Dashboard (Tab View)**:
-    *   **At A Glance**: Today's attendance status.
-    *   **History**: Attendance logs (entries/exits, late, early, overtime).
-    *   **Leave**: Leave requests and history.
-    *   **Profile**: User details and logout.
+        *   Used for both first-time setup and subsequent logins.
+        *   **Employee ID Scanning**: Supports QR code scan.
+        *   **Smart Pre-fill**: Automatically pre-fills stored ID and sets to Read-Only during re-auth.
+        *   **Clear Data**: Reset setup by wiping stored credentials.
+*   **Main Dashboard (TabView)**: 4 fixed tabs. Active tab uses **filled** icon, inactive uses **outlined** variant.
+    1.  **Home**: BLE status, today's attendance summary, and quick actions.
+    2.  **Activity**: Full attendance history (entries/exits, late, early, overtime).
+    3.  **Requests**: Submission and status of requests (Leave, etc.).
+    4.  **Profile**: Hub for user info and navigation to settings/admin.
+*   **Profile (Hub Layout)**: Uses a list/lazy column with:
+    *   **Member Card**: Name, role, ID, and UUID.
+    *   **Settings Row**: Navigates to **Settings Screen**.
+    *   **Notifications Row**: Navigates to **Notifications Screen** (stub).
+    *   **Admin Panel Row**: (Admin only) Navigates to **Admin Panel Menu**.
+    *   **Logout Button**: (At bottom).
+*   **Settings Screen**:
+    *   **App Lock**: Enable/Disable, PIN setup, Biometric toggle, Auto-lock interval.
+    *   **App Updates**: Current version info and "Check for Updates" button.
 *   **App Lock**: Shown on app resume if enabled.
 
-### 4.2. Admin Features (Shown conditionally based on `isAdmin`)
-*   **Employee Management**: 
-    *   Add, Edit, Import (CSV/Multipart).
-    *   **Member Details**: View profile, copy UUID, and **View QR Code** (generates a scannable QR of the employee's UUID).
-*   **Reports (Grouped Screen)**:
-    *   **Attendance Sheet**: View currently present/left employees.
-    *   **At A Glance**: Monthly attendance summary and export.
-    *   **Attendance Logs**: Raw BLE scan logs.
+### 4.2. Admin Features (Nested under Admin Panel Menu)
+Accessed via **Profile -> Admin Panel**.
+*   **Members**: All employees list, Add/Edit employee, Member Details (with QR generator).
+*   **Attendance Report**:
+    *   Attendance Sheet (Present/Left list).
+    *   At A Glance (Monthly summary).
+    *   Attendance Logs (Raw BLE data).
+*   **Holidays**: Manage office holidays.
+*   **Work Policy**: Manage work hours and policies.
 *   **Leave Management**: Approve/Reject leave requests.
-*   **Settings (Grouped Screen)**:
-    *   **Holidays**: Manage office holidays.
-    *   **Work Policy**: Manage work hours and policies.
-    *   **Import Employee**: Bulk import via CSV.
-    *   **Server URL**: View current server URL, copy to clipboard, and **View QR Code** (generates a scannable QR of the server URL).
-*   **IoT (ESP32) Management**: Ping devices, send commands, generate NVS configs.
+*   **Import Employees**: Bulk import via CSV.
+*   **Server Settings**: View current server URL, copy to clipboard, and view scannable QR.
+*   **ESP32 Management**: Ping devices, send commands, generate NVS configs.
 
 ## 5. Design & Styling
 *   **Theming**: Support system-wide Light and Dark mode using SwiftUI's environment.
 *   **Typography & Layout**: Standard iOS typography (San Francisco) with Material-like card layouts for data presentation.
+*   **Navigation Style**: Use `NavigationLink` with a trailing chevron (KeyboardArrowRight) for hub navigation rows.
 *   **Color Palette (Hex Codes)**:
     *   **Light Theme**:
         *   Primary: `#6650A4` (Purple40)

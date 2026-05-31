@@ -1,3 +1,7 @@
+##version_1.22.7
+- docs: sync DESIGN_IOS.md with latest Android navigation and features
+- bump version to 1.22.7 (122)
+
 ##version_1.22.6
 - fix: restore internal back navigation from report sub-screens to the Reports menu
 - bump version to 1.22.6 (121)
