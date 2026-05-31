@@ -1,3 +1,8 @@
+##version_1.22.5
+- fix: add missing "Import Employees" and "Server Settings" rows to Admin Panel
+- fix: ensure back navigation from all Admin sub-screens returns to the new Admin Panel
+- bump version to 1.22.5 (120)
+
 ##version_1.22.4
 - docs: update GEMINI.md with mandatory pre-push checklist
 - bump version to 1.22.4 (119)

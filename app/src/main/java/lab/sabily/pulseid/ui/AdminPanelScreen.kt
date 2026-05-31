@@ -7,9 +7,11 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Devices
 import androidx.compose.material.icons.filled.EventNote
+import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.Gavel
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Insights
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -73,6 +75,20 @@ fun AdminPanelScreen(
                     icon = Icons.Default.EventNote,
                     label = "Leave Management",
                     onClick = { onNavigateToAdminSubScreen(AdminSubScreen.LEAVE_REQUESTS) }
+                )
+            }
+            item {
+                AdminMenuRow(
+                    icon = Icons.Default.FileUpload,
+                    label = "Import Employees",
+                    onClick = { onNavigateToAdminSubScreen(AdminSubScreen.IMPORT) }
+                )
+            }
+            item {
+                AdminMenuRow(
+                    icon = Icons.Default.Language,
+                    label = "Server Settings",
+                    onClick = { onNavigateToAdminSubScreen(AdminSubScreen.SERVER_URL) }
                 )
             }
             item {
