@@ -1,3 +1,9 @@
+##version_1.22.9
+- fix: improve compatibility with Android 10 and older kernels
+- fix: downgrade targetSdk to 34 to avoid issues with preview SDKs on older devices
+- fix: set extractNativeLibs="true" for better installation reliability on older systems
+- bump version to 1.22.9 (124)
+
 ##version_1.22.8
 - feat: implement "Edit Profile" for regular employees (self-edit email and password)
 - feat: implement admin-only "Delete Employee" in Member Detail screen

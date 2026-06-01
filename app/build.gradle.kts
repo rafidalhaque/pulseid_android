@@ -6,16 +6,14 @@ plugins {
 
 android {
     namespace = "lab.sabily.pulseid"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "lab.sabily.pulseid"
         minSdk = 26
-        targetSdk = 36
-        versionCode = 123
-        versionName = "1.22.8"
+        targetSdk = 34
+        versionCode = 124
+        versionName = "1.22.9"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
