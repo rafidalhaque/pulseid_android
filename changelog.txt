@@ -1,3 +1,10 @@
+##version_1.22.10
+- fix: resolve NtfyForegroundService crashes on Android 12+ and Android 14
+- fix: add missing FOREGROUND_SERVICE_DATA_SYNC permission with API 34 guard
+- fix: wrap startForeground() in try-catch to handle background start restrictions
+- fix: use proper FOREGROUND_SERVICE_TYPE_DATA_SYNC for Android 10+
+- bump version to 1.22.10 (125)
+
 ##version_1.22.9
 - fix: improve compatibility with Android 10 and older kernels
 - fix: downgrade targetSdk to 34 to avoid issues with preview SDKs on older devices
